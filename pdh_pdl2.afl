@@ -1,0 +1,57 @@
+_SECTION_BEGIN("Price1");
+SetChartOptions(0,chartShowArrows|chartShowDates);
+_N(Title = StrFormat("{{NAME}} - {{INTERVAL}} {{DATE}} Open %g, Hi %g, Lo %g, Close %g (%.1f%%) {{VALUES}}", O, H, L, C, SelectedValue( ROC( C, 1 ) ) ));
+Plot( C, "Close", ParamColor("Color", colorBrightGreen ), styleNoTitle | ParamStyle("Style") | GetPriceStyle() );
+_SECTION_END();
+
+_SECTION_BEGIN("PreDay HLC");
+function CDL( array )
+{
+doy = DayOfYear();
+Lastdoy = doy == LastValue( doy );
+Dayline = array * Lastdoy;
+
+return IIf( Dayline, Dayline, Null );
+}
+
+//TIME FRAME CALCULATION
+H1 = TimeFrameGetPrice( "H", inDaily, -1 ); // yesterdays high
+L1 = TimeFrameGetPrice( "L", inDaily, -1 ); // low
+C1 = TimeFrameGetPrice( "C", inDaily, -1 ); // close
+O1 = TimeFrameGetPrice( "O", inDaily, -1 ); // close
+V1 = TimeFrameGetPrice( "V", inDaily, -1 ); // low
+
+//C1 = TimeFrameGetPrice( "C", inDaily, -1 ); // close
+//O1 = TimeFrameGetPrice( "O", inDaily, -1 ); // close
+//DayO = TimeFrameGetPrice( "-1", inDaily ); // current day open
+
+//PLOTS
+Plot( cdl( H1 ), "", colorWhite, styleLine + styleDashed + styleNoRescale);
+Plot( cdl( L1 ), "", colorWhite, styleLine + styleDashed + styleNoRescale);
+_SECTION_END();
+
+_SECTION_BEGIN("AFL Example");
+/*firstly some basics common*/
+SetBarsRequired(10000,10000); /* this ensures that the charts include all bars AND NOT just those on screen */
+SetFormulaName("Sample System"); /*name it for backtest report identification */
+SetTradeDelays( 1, 1, 1, 1 ); /* delay entry/exit by one bar */
+
+//TIME FRAME CALCULATION
+H2 = TimeFrameGetPrice( "H", inDaily, -2 ); // yesterdays high
+L2 = TimeFrameGetPrice( "L", inDaily, -2 ); // low
+C2 = TimeFrameGetPrice( "C", inDaily, -2 ); // close
+O2 = TimeFrameGetPrice( "O", inDaily, -2 ); // close
+V2 = TimeFrameGetPrice( "V", inDaily, -2 ); // low
+
+H3 = TimeFrameGetPrice( "H", inDaily, -3 ); // yesterdays high
+L3 = TimeFrameGetPrice( "L", inDaily, -3 ); // low
+C3 = TimeFrameGetPrice( "C", inDaily, -3 ); // close
+O3 = TimeFrameGetPrice( "O", inDaily, -3 ); // close
+V3 = TimeFrameGetPrice( "V", inDaily, -3 ); // low
+
+TimeFrameSet(3*in1Minute);
+
+
+TimeFrameRestore() ;
+
+_SECTION_END();
