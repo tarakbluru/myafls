@@ -50,7 +50,25 @@ O3 = TimeFrameGetPrice( "O", inDaily, -3 ); // close
 V3 = TimeFrameGetPrice( "V", inDaily, -3 ); // low
 
 TimeFrameSet(3*in1Minute);
+initbars = Null;
+initperiod = 5;
 
+if (BarCount >= 5)
+{
+    h15m = Null;
+    l15m = Null;
+    
+	for (i = 0; i< initperiod; i++) {
+		h15m [i] = H[i];
+		l15m [i] = L[i];
+	} 
+	
+	maxH15=Highest(h15m);
+	minL15=Lowest (l15m);
+
+	Plot( cdl( maxH15 ), "", colorWhite, styleLine + styleDashed + styleNoRescale);
+	Plot( cdl( minL15 ), "", colorWhite, styleLine + styleDashed + styleNoRescale);
+}
 
 TimeFrameRestore() ;
 
