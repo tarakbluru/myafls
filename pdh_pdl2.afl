@@ -20,8 +20,8 @@ O1 = TimeFrameGetPrice( "O", inDaily, -1 ); // open
 //DayO = TimeFrameGetPrice( "-1", inDaily ); // current day open
 
 //PLOTS
-Plot( cdl( H1 ), "", colorWhite, styleLine + styleDashed + styleNoRescale);
-Plot( cdl( L1 ), "", colorWhite, styleLine + styleDashed + styleNoRescale);
+Plot( cdl( H1 ), "", colorRed, styleLine + styleDashed + styleNoRescale);
+Plot( cdl( L1 ), "", colorGreen, styleLine + styleDashed + styleNoRescale);
 _SECTION_END();
 
 _SECTION_BEGIN("AFL Example");
@@ -50,55 +50,45 @@ O3 = TimeFrameGetPrice( "O", inDaily, -3 ); // open
 
 //Initial Range
 TimeFrameSet( 3*in1Minute ); // switch to 3 minute frame
-irperiod = 2;
+tn = TimeNum();
 
-initbars = null;
-h0 = Null;
-l0 = Null;
+// define start/end hours in TimeNum format
+StartTime = 91500;
+Endtime = 93000;
 
-if (BarCount >= irperiod) {
+// these conditions are true when TimeNum of the bar equals startime/endtime
+StartBar = tn == StartTime;
+EndBar = tn == Endtime;
+
+// on the end bar we read the value of highest high or lowest low since the start bar
+myH = ValueWhen( EndBar, HighestSince( StartBar, High ) );
+myL = ValueWhen( EndBar, LowestSince( StartBar, Low ) );
+
+// display price and high / low arrays
+//Plot( Close, "Close", colorDefault, styleBar|styleThick );
+Plot( cdl(myH), "", colorWhite, styleLine + styleDashed + styleNoRescale );
+Plot( cdl(myL), "", colorWhite, styleLine + styleDashed + styleNoRescale );
+
+
+Buy = (L2 >= L3) AND (L1 >= L2) AND (Cross (C, H1) OR Cross (C,myH))AND (C1>=O1);// AND (C2>=O2);
+Sell = (H2 <= H3) AND  (H1 <= H2) AND (Cross (L1, C) OR Cross (myL, C)) AND (C1<=O1);// AND (C2<=O2);
+
 	
-	for( i = BarCount-irperiod; i < BarCount; i++ )
-	{
-		initbars [i] = 1;
-	}
-	
-	for (i=0; i<irperiod; i++) {
-		h0[i]=H[i];
-		l0[i]=L[i];
-	}
-	H0_15m = Highest( h0 );
-	L0_15m = Lowest (l0);// (l0, irperiod );
-	
-	//O0 = TimeFrameGetPrice( "O", inDaily, 0 ); // gives you this day Open price.
-	//Buy = Cross (C, H1) AND C > 50;
-	//Sell = Cross (L1, C) AND (C > 50);
-	//Buy = (Cross (C, H1) AND C > 50 AND O0 > C1  AND C > H0_15m) OR Cross (C,H0_15m);
-	//Sell = (Cross (L1, C) AND (C > 50) AND (O0 < C1) AND C < L0_15m) OR Cross (L0_15m, C);
-//	Buy = (L2 >= L3) AND (L1 >= L2) AND (Cross (C, H1) OR Cross (C,H0_15m)) AND (C2>=O2) AND (C1>=O1);
-//	Sell = (H2 <= H3) AND  (H1 <= H2) AND (Cross (L1, C) OR Cross (L0_15m, C)) AND (C2<=O2) AND (C1<=O1);
+Buy=exrem( Buy, Sell );
+Sell=exrem( Sell, Buy );
 
-	Buy = (L2 >= L3) AND (L1 >= L2) AND (Cross (C, H1) OR Cross (C,H0_15m))AND (C1>=O1);// AND (C2>=O2);
-	Sell = (H2 <= H3) AND  (H1 <= H2) AND (Cross (L1, C) OR Cross (L0_15m, C)) AND (C1<=O1);// AND (C2<=O2);
+Filter = (Buy OR Sell) AND (V1 > 100000) AND (C>100);
+//Filter = (Buy OR Sell) AND (C>100);
 
-	Buy = IIf(initbars, Buy, initbars);
-	Sell = IIf(initbars, Sell, initbars);
-	
-	Buy=exrem( Buy, Sell );
-	Sell=exrem( Sell, Buy );
+SetOption("NoDefaultColumns", True );
+AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );
+AddColumn(C, "CMP", 1.2);
+AddColumn(H1, "PDH", 1.2);
+AddColumn(L1, "PDL", 1.2);
+AddColumn(Volume,"Volume",1.0);
+text = WriteIf( Buy, "Buy", "Sell");
+AddTextColumn(text, "Trade" );
 
-	//Filter = (Buy OR Sell) AND (V1 > 100000) AND (C>100);
-	Filter = (Buy OR Sell) AND (C>100);
-
-	SetOption("NoDefaultColumns", True );
-	AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
-	AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );
-	AddColumn(C, "CMP", 1.2);
-	AddColumn(H1, "PDH", 1.2);
-	AddColumn(L1, "PDL", 1.2);
-	AddColumn(Volume,"Volume",1.0);
-	text = WriteIf( Buy, "Buy", "Sell");
-	AddTextColumn(text, "Trade" );
-}
 TimeFrameRestore();
 _SECTION_END(); 
