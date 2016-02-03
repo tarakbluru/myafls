@@ -60,25 +60,28 @@ Endtime = 93000;
 StartBar = tn == StartTime;
 EndBar = tn == Endtime;
 
-// on the end bar we read the value of highest high or lowest low since the start bar
-myH = ValueWhen( EndBar, HighestSince( StartBar, High ) );
-myL = ValueWhen( EndBar, LowestSince( StartBar, Low ) );
+if ( EndValue(tn) >= Endtime ) {
+	// on the end bar we read the value of highest high or lowest low since the start bar
+	myH = ValueWhen( EndBar, HighestSince( StartBar, High ) );
+	myL = ValueWhen( EndBar, LowestSince( StartBar, Low ) );
 
-// display price and high / low arrays
-//Plot( Close, "Close", colorDefault, styleBar|styleThick );
-Plot( cdl(myH), "", colorWhite, styleLine + styleDashed + styleNoRescale );
-Plot( cdl(myL), "", colorWhite, styleLine + styleDashed + styleNoRescale );
-
-
-Buy = (L2 >= L3) AND (L1 >= L2) AND (Cross (C, H1) OR Cross (C,myH))AND (C1>=O1);// AND (C2>=O2);
-Sell = (H2 <= H3) AND  (H1 <= H2) AND (Cross (L1, C) OR Cross (myL, C)) AND (C1<=O1);// AND (C2<=O2);
-
+	// display price and high / low arrays
+	//Plot( Close, "Close", colorDefault, styleBar|styleThick );
+	Plot( cdl(myH), "", colorWhite, styleLine + styleDashed + styleNoRescale );
+	Plot( cdl(myL), "", colorWhite, styleLine + styleDashed + styleNoRescale );
+	Buy = (L2 >= L3) AND (L1 >= L2) AND (Cross (C, H1) OR Cross (C,myH) OR Cross(C, myL)) AND (C1>O1);// AND (C2>=O2);
+	Sell = (H2 <= H3) AND  (H1 <= H2) AND (Cross (L1, C) OR Cross (myL, C) OR Cross (myH, C)) AND (C1<O1);// AND (C2<=O2);
+}
+else {
+	Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1) AND (C1>=O1);// AND (C2>=O2);
+	Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C) AND (C1<=O1);// AND (C2<=O2);
+}
 	
-Buy=exrem( Buy, Sell );
-Sell=exrem( Sell, Buy );
-
-Filter = (Buy OR Sell) AND (V1 > 100000) AND (C>100);
-//Filter = (Buy OR Sell) AND (C>100);
+//Buy=exrem( Buy, Sell );
+//Sell=exrem( Sell, Buy );
+//_TRACE("debug:"+V1[0]); 
+//Filter = (Buy OR Sell) AND (V1 > 100000) AND (C>100);
+Filter = (Buy OR Sell) AND (C>100);
 
 SetOption("NoDefaultColumns", True );
 AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
