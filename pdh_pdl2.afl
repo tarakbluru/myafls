@@ -29,6 +29,9 @@ _SECTION_BEGIN("AFL Example");
 SetBarsRequired(10000); /* this ensures that the charts include all bars AND NOT just those on screen */
 SetFormulaName("Sample System"); /*name it for backtest report identification */
 SetTradeDelays( 1, 1, 1, 1 ); /* delay entry/exit by one bar */
+H1[0]=L1[0]=C1[0]=O1[0]=V1[0]=0;
+H2[0]=L2[0]=C2[0]=O2[0]=V2[0]=0;
+H3[0]=L3[0]=C3[0]=O3[0]=V3[0]=0;
 
 H1 = TimeFrameGetPrice( "H", inDaily, -1 ); // yesterdays high
 L1 = TimeFrameGetPrice( "L", inDaily, -1 ); // low
@@ -48,40 +51,83 @@ L3 = TimeFrameGetPrice( "L", inDaily, -3 ); // low
 C3 = TimeFrameGetPrice( "C", inDaily, -3 ); // close
 O3 = TimeFrameGetPrice( "O", inDaily, -3 ); // open
 
+//Filter = (V1 > 100000);
+
 //Initial Range
 TimeFrameSet( 3*in1Minute ); // switch to 3 minute frame
 tn = TimeNum();
 
 // define start/end hours in TimeNum format
 StartTime = 91500;
-Endtime = 93000;
+Endtime = 92700;
 
 // these conditions are true when TimeNum of the bar equals startime/endtime
 StartBar = tn == StartTime;
 EndBar = tn == Endtime;
 
+Session= TimeNum() >= 92700;
+
+Buy=Null;
+Sell=Null;
+Buy = (L2 >= L3) AND (L1 >= L2) AND V1 >10000;
+Sell = (H2 <= H3) AND  (H1 <= H2) AND V1 >10000;
+Filter = Buy OR Sell;
+
 if ( EndValue(tn) >= Endtime ) {
 	// on the end bar we read the value of highest high or lowest low since the start bar
 	myH = ValueWhen( EndBar, HighestSince( StartBar, High ) );
 	myL = ValueWhen( EndBar, LowestSince( StartBar, Low ) );
-
+//	myH[BarCount-1]=myH[BarCount-2]=myH[BarCount-3]=myH[BarCount-4]=myH[BarCount];
+//_TRACE("debug0:"+EndValue(tn));
+//_TRACE("debug1:"+myH[0]);
+//_TRACE("debug2:"+myH[1]);
+//_TRACE("debug3:"+myH[2]);
+//_TRACE("debug4:"+myH[3]);
+//_TRACE("debug5:"+myH[4]);
+//_TRACE("debug6:"+myH[5]);	
 	// display price and high / low arrays
 	//Plot( Close, "Close", colorDefault, styleBar|styleThick );
+//	Buy = iif(cdl(myH)&&Session,1,0);
+//	Plot( cdl(myH), "", colorWhite, styleLine + styleDashed + styleNoRescale );
+
 	Plot( cdl(myH), "", colorWhite, styleLine + styleDashed + styleNoRescale );
 	Plot( cdl(myL), "", colorWhite, styleLine + styleDashed + styleNoRescale );
-	Buy = (L2 >= L3) AND (L1 >= L2) AND (Cross (C, H1) OR Cross (C,myH) OR Cross(C, myL)) AND (C1>O1);// AND (C2>=O2);
-	Sell = (H2 <= H3) AND  (H1 <= H2) AND (Cross (L1, C) OR Cross (myL, C) OR Cross (myH, C)) AND (C1<O1);// AND (C2<=O2);
+
+Buy = Cross (C, H1) OR Cross (C, L1);
+Sell = Cross (L1, C) OR Cross (H1, C);
+//Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1);
+//Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C);
+
+//Buy = (L2 >= L3) AND (L1 >= L2) AND (C1>O1);// AND (C2>=O2);
+//Sell = (H2 <= H3) AND  (H1 <= H2) AND (C1<O1);// AND (C2<=O2);
+
+//Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1) AND (C1>O1);// AND (C2>=O2);
+//Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C)  AND (C1<O1);// AND (C2<=O2);
+//Buy = (L2 >= L3) AND (L1 >= L2) AND (Cross (C,myH) OR Cross(C, myL)) AND (C1>O1);// AND (C2>=O2);
+//Sell = (H2 <= H3) AND  (H1 <= H2) AND (Cross (myL, C) OR Cross (myH, C)) AND (C1<O1);// AND (C2<=O2);
 }
 else {
-	Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1) AND (C1>=O1);// AND (C2>=O2);
-	Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C) AND (C1<=O1);// AND (C2<=O2);
+//	Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1) AND (C1>=O1);// AND (C2>=O2);
+//	Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C) AND (C1<=O1);// AND (C2<=O2);
+//Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1); 
+//Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C);
+Buy = Cross (C, H1) OR Cross (C, L1);
+Sell = Cross (L1, C) OR Cross (H1, C);
 }
+//Buy = iif((close>prevdayhigh)&&Session,1,0);
+//Sell = iif((close < prevdaylow)&&Session,1,0);
 	
 //Buy=exrem( Buy, Sell );
 //Sell=exrem( Sell, Buy );
 //_TRACE("debug:"+V1[0]); 
 //Filter = (Buy OR Sell) AND (V1 > 100000) AND (C>100);
-Filter = (Buy OR Sell) AND (C>100);
+
+Filter = Filter AND (Buy OR Sell) AND (C>100);
+
+/* Plot Buy and Sell Signal Arrows */
+shape = Buy * shapeUpArrow + Sell * shapeDownArrow;
+PlotShapes( shape, IIf( Buy, colorGreen, colorRed ), 0, IIf( Buy, Low, High ) );
+GraphXSpace = 5;
 
 SetOption("NoDefaultColumns", True );
 AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
