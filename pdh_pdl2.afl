@@ -4,7 +4,6 @@ _N(Title = StrFormat("{{NAME}} - {{INTERVAL}} {{DATE}} Open %g, Hi %g, Lo %g, Cl
 Plot( C, "Close", ParamColor("Color", colorBrightGreen ), styleNoTitle | ParamStyle("Style") | GetPriceStyle() );
 _SECTION_END();
 
-_SECTION_BEGIN("PreDay HLC");
 function CDL( array )
 {
 	doy = DayOfYear();
@@ -12,6 +11,8 @@ function CDL( array )
 	Dayline = array * Lastdoy;
 	return IIf( Dayline, Dayline, Null );
 }
+_SECTION_BEGIN("PreDay HLC");
+
 //TIME FRAME CALCULATION
 H1 = TimeFrameGetPrice( "H", inDaily, -1 ); // yesterdays high
 L1 = TimeFrameGetPrice( "L", inDaily, -1 ); // low
@@ -59,21 +60,28 @@ tn = TimeNum();
 
 // define start/end hours in TimeNum format
 StartTime = 91500;
-Endtime = 92700;
+Endtime = 91500;
 
 // these conditions are true when TimeNum of the bar equals startime/endtime
 StartBar = tn == StartTime;
 EndBar = tn == Endtime;
 
-Session= TimeNum() >= 92700;
+Session= TimeNum() >= 91800;
 
 Buy=Null;
 Sell=Null;
-Buy = (L2 >= L3) AND (L1 >= L2) AND V1 >10000;
-Sell = (H2 <= H3) AND  (H1 <= H2) AND V1 >10000;
+O0 = TimeFrameGetPrice( "O", inDaily, 0 ); // open
+
+Buy = ((L2 >= L3) AND (L1 >= L2) OR (O0 > C1)) AND V1 >10000;
+Sell = ((H2 <= H3) AND  (H1 <= H2) OR (O0 < C1)) AND V1 >10000;
+
+
 Filter = Buy OR Sell;
 
-if ( EndValue(tn) >= Endtime ) {
+myH=Null;
+myL=Null;
+
+if ( EndValue(Session) ) {
 	// on the end bar we read the value of highest high or lowest low since the start bar
 	myH = ValueWhen( EndBar, HighestSince( StartBar, High ) );
 	myL = ValueWhen( EndBar, LowestSince( StartBar, Low ) );
@@ -93,8 +101,14 @@ if ( EndValue(tn) >= Endtime ) {
 	Plot( cdl(myH), "", colorWhite, styleLine + styleDashed + styleNoRescale );
 	Plot( cdl(myL), "", colorWhite, styleLine + styleDashed + styleNoRescale );
 
-Buy = Cross (C, H1) OR Cross (C, L1);
-Sell = Cross (L1, C) OR Cross (H1, C);
+//Buy = Cross (C, H1) OR Cross (C, L1);
+//Sell = Cross (L1, C) OR Cross (H1, C);
+
+Buy = (Cross (C, Min(H1,myH)) OR Cross (C, Min(L1,myL))) AND (MFI(14) <=30);
+Sell = (Cross (Max(L1,myL), C) OR Cross (Max(H1,myH), C)) AND (MFI(14) >=70);
+
+//Buy = Cross (C, H1) OR Cross (C, L1) OR Cross (C, myL) OR Cross (C, myH);
+//Sell = Cross (L1, C) OR Cross (H1, C) OR Cross (myH,C) OR Cross (myL,C);
 //Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1);
 //Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C);
 
@@ -114,6 +128,7 @@ else {
 Buy = Cross (C, H1) OR Cross (C, L1);
 Sell = Cross (L1, C) OR Cross (H1, C);
 }
+
 //Buy = iif((close>prevdayhigh)&&Session,1,0);
 //Sell = iif((close < prevdaylow)&&Session,1,0);
 	
@@ -121,6 +136,8 @@ Sell = Cross (L1, C) OR Cross (H1, C);
 //Sell=exrem( Sell, Buy );
 //_TRACE("debug:"+V1[0]); 
 //Filter = (Buy OR Sell) AND (V1 > 100000) AND (C>100);
+//Buy = cdl(Buy);
+//Sell = cdl (Sell);
 
 Filter = Filter AND (Buy OR Sell) AND (C>100);
 
