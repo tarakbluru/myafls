@@ -71,20 +71,28 @@ Session= TimeNum() >= 91800;
 Buy=Null;
 Sell=Null;
 O0 = TimeFrameGetPrice( "O", inDaily, 0 ); // open
+H0 = TimeFrameGetPrice( "H", inDaily, 0 ); // low
+L0 = TimeFrameGetPrice( "L", inDaily, 0 ); // high
 
-Buy = ((L2 >= L3) AND (L1 >= L2) OR (O0 > C1)) AND V1 >10000;
-Sell = ((H2 <= H3) AND  (H1 <= H2) OR (O0 < C1)) AND V1 >10000;
+Plot( cdl(H0), "", colorBlue, styleLine + styleDashed + styleNoRescale );
+
+	
+//Buy = ((L2 >= L3) AND (L1 >= L2) OR (O0 > C1)) AND V1 >10000;
+//Sell = ((H2 <= H3) AND  (H1 <= H2) OR (O0 < C1)) AND V1 >10000;
 
 
-Filter = Buy OR Sell;
+Filter = V1 > 1000;
 
 myH=Null;
 myL=Null;
 
-if ( EndValue(Session) ) {
-	// on the end bar we read the value of highest high or lowest low since the start bar
+Filter = Filter AND ((MFI(14) <= 20) OR (MFI(14) >= 80));
+
+//if ( lastValue(Session) ) {
 	myH = ValueWhen( EndBar, HighestSince( StartBar, High ) );
 	myL = ValueWhen( EndBar, LowestSince( StartBar, Low ) );
+
+	// on the end bar we read the value of highest high or lowest low since the start bar
 //	myH[BarCount-1]=myH[BarCount-2]=myH[BarCount-3]=myH[BarCount-4]=myH[BarCount];
 //_TRACE("debug0:"+EndValue(tn));
 //_TRACE("debug1:"+myH[0]);
@@ -103,9 +111,44 @@ if ( EndValue(Session) ) {
 
 //Buy = Cross (C, H1) OR Cross (C, L1);
 //Sell = Cross (L1, C) OR Cross (H1, C);
+//Buy = Cross (C, Min(myL,L1)) OR Cross (C, Min(H1, myH));
+//Buy = Cross (C, myL) OR Cross (C, Min(H1, myH));
+	if (LastValue(L0) <= LastValue(Min(myL,L1))) {
+		//less than both pdl and irl
+		//buy should be only when it tries to cross min(myL,L1)
+		Buy = Cross (C, Min(myL,L1)) OR Cross (C, Min(H1, myH));
+	}
+	else if ((LastValue(L0) <= LastValue(myL)) AND (LastValue(L0) >= LastValue(L1))){
+		//less than irl but more than pdl
+		//buy can be when it tries to cross myL
+		Buy = Cross (C, myL) OR Cross (C, Min(H1, myH));
+	}
+	else if ((LastValue(L0) <= LastValue(L1)) AND (LastValue(L0) >= LastValue(myL))){
+		//less than pdl but more than IRL
+		//buy can be when it tries to cross myL
+		Buy = Cross (C, L1) OR Cross (C, Min(H1, myH));
+	}
+    //Sell = Cross (Max(myH,H1),C) OR Cross (Max(L1, myL),C);	
+	if (LastValue(H0) >= LastValue(Max(myH,H1))) {
+		//more than both pdh and irh
+		//sell should be only when it tries to cross max(myH,H1)
+		Sell = Cross (Max(myH,H1),C) OR Cross (Max(L1, myL),C);
+	}
+	else if ((LastValue(H0) >= LastValue(myH)) AND (LastValue(H0) <= LastValue(H1))){
+		//more than irH but more than pdH
+		//sell can be when it tries to cross myL
+		Sell = Cross (myH, C) OR Cross (Max(L1, myL),C);
+	}
+	else if ((LastValue(H0) >= LastValue(H1)) AND (LastValue(H0) <= LastValue(myH))){
+		//more than pdh but less than IRH
+		//sell can be when it tries to cross myL
+		Sell = Cross ( H1,C) OR Cross (Max(L1, myL),C);
+	}
 
-Buy = (Cross (C, Min(H1,myH)) OR Cross (C, Min(L1,myL))) AND (MFI(14) <=30);
-Sell = (Cross (Max(L1,myL), C) OR Cross (Max(H1,myH), C)) AND (MFI(14) >=70);
+//Buy = (Cross (C, Min(H1, myH)) OR Cross (C, Min(myL,L1))) AND (NOT(Cross (Max(TimeFrameExpand(H1,inDaily),myH), C)));
+
+//Buy = (Cross (C, H1) OR (Cross (C, myH)) OR (Cross (C, myL)) OR (Cross (C, L1))) AND (NOT(Cross (Max(TimeFrameExpand(H1,inDaily),myH), C)));
+//Sell = (Cross (H1, C) OR (Cross (myH, C)) OR (Cross (myL, C)) OR (Cross (L1, C))) AND (NOT(Cross (Min(L1,myL), C))) ;
 
 //Buy = Cross (C, H1) OR Cross (C, L1) OR Cross (C, myL) OR Cross (C, myH);
 //Sell = Cross (L1, C) OR Cross (H1, C) OR Cross (myH,C) OR Cross (myL,C);
@@ -119,19 +162,21 @@ Sell = (Cross (Max(L1,myL), C) OR Cross (Max(H1,myH), C)) AND (MFI(14) >=70);
 //Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C)  AND (C1<O1);// AND (C2<=O2);
 //Buy = (L2 >= L3) AND (L1 >= L2) AND (Cross (C,myH) OR Cross(C, myL)) AND (C1>O1);// AND (C2>=O2);
 //Sell = (H2 <= H3) AND  (H1 <= H2) AND (Cross (myL, C) OR Cross (myH, C)) AND (C1<O1);// AND (C2<=O2);
-}
-else {
+//}
+//else {
 //	Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1) AND (C1>=O1);// AND (C2>=O2);
 //	Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C) AND (C1<=O1);// AND (C2<=O2);
 //Buy = (L2 >= L3) AND (L1 >= L2) AND  Cross (C, H1); 
 //Sell = (H2 <= H3) AND  (H1 <= H2) AND Cross (L1, C);
-Buy = Cross (C, H1) OR Cross (C, L1);
-Sell = Cross (L1, C) OR Cross (H1, C);
-}
+//Buy = Cross (C, H1) OR Cross (C, L1);
+//Sell = Cross (L1, C) OR Cross (H1, C);
+//Buy = (Cross (C, Min(H1,H1)) OR Cross (C, Min(L1,L1)));
+//Sell = (Cross (Max(L1,L1), C) OR Cross (Max(H1,H1), C));
+//}
 
 //Buy = iif((close>prevdayhigh)&&Session,1,0);
 //Sell = iif((close < prevdaylow)&&Session,1,0);
-	
+
 //Buy=exrem( Buy, Sell );
 //Sell=exrem( Sell, Buy );
 //_TRACE("debug:"+V1[0]); 
@@ -146,6 +191,10 @@ shape = Buy * shapeUpArrow + Sell * shapeDownArrow;
 PlotShapes( shape, IIf( Buy, colorGreen, colorRed ), 0, IIf( Buy, Low, High ) );
 GraphXSpace = 5;
 
+{
+//Buy=exrem( Buy, Sell );
+//Sell=exrem( Sell, Buy );
+
 SetOption("NoDefaultColumns", True );
 AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
 AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );
@@ -155,6 +204,6 @@ AddColumn(L1, "PDL", 1.2);
 AddColumn(Volume,"Volume",1.0);
 text = WriteIf( Buy, "Buy", "Sell");
 AddTextColumn(text, "Trade" );
-
+}
 TimeFrameRestore();
 _SECTION_END(); 
