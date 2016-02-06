@@ -71,8 +71,8 @@ Session= TimeNum() >= 91800;
 Buy=Null;
 Sell=Null;
 O0 = TimeFrameGetPrice( "O", inDaily, 0 ); // open
-H0 = TimeFrameGetPrice( "H", inDaily, 0 ); // low
-L0 = TimeFrameGetPrice( "L", inDaily, 0 ); // high
+H0 = TimeFrameGetPrice( "H", inDaily, 0 ); // high
+L0 = TimeFrameGetPrice( "L", inDaily, 0 ); // low
 
 Plot( cdl(H0), "", colorBlue, styleLine + styleDashed + styleNoRescale );
 
@@ -177,8 +177,8 @@ Filter = Filter AND ((MFI(14) <= 20) OR (MFI(14) >= 80));
 //Buy = iif((close>prevdayhigh)&&Session,1,0);
 //Sell = iif((close < prevdaylow)&&Session,1,0);
 
-//Buy=exrem( Buy, Sell );
-//Sell=exrem( Sell, Buy );
+Buy=exrem( Buy, Sell );
+Sell=exrem( Sell, Buy );
 //_TRACE("debug:"+V1[0]); 
 //Filter = (Buy OR Sell) AND (V1 > 100000) AND (C>100);
 //Buy = cdl(Buy);
