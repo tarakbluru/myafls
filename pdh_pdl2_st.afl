@@ -1,3 +1,11 @@
+function CDL( array )
+{
+	doy = DayOfYear();
+	Lastdoy = doy == LastValue( doy );
+	Dayline = array * Lastdoy;
+	return IIf( Dayline, Dayline, Null );
+}
+
 /* Done by    Rajandran R  */
 /* Author of www.marketcalls.in  */
 
@@ -26,6 +34,9 @@ function PopupWindowEx( popupID, bodytext, captiontext, timeout, left, top )
 _SECTION_BEGIN("SuperTrend Ver 4");
 
 SetBarsRequired(100000,0);
+//TIME FRAME CALCULATION
+H1 = TimeFrameGetPrice( "H", inDaily, -1 ); // yesterdays high
+L1 = TimeFrameGetPrice( "L", inDaily, -1 ); // low
 
 
 GraphXSpace = 15;
@@ -42,6 +53,8 @@ SetBarFillColor(IIf(C>O,ParamColor("Candle UP Color", colorGreen),IIf(C<=O,Param
 
 Plot(C,"\nPrice",IIf(C>O,ParamColor("Wick UP Color", colorDarkGreen),IIf(C<=O,ParamColor("Wick Down Color", colorDarkRed),colorLightGrey)),64,0,0,0,0);
 
+Plot( cdl( H1 ), "", colorRed, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0);
+Plot( cdl( L1 ), "", colorGreen, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0);
 
 
 SetTradeDelays(1,1,1,1);
@@ -83,152 +96,140 @@ flag=flagh=0;
 
 for (i = 1; i <BarCount-1; i++) {
 
-      TrendUp[i] = Null;
-
-      TrendDown[i] = Null;
-
-     
-
-      trend[i]=1;
-
-   
-
-      
-
-      if (Close[i]>Up[i-1]) {
-
-         trend[i]=1;
-
-         if (trend[i-1] == -1) changeOfTrend = 1;
-
-         
-
-      }
-
-      else if (Close[i]<Dn[i-1]) {
-
-         trend[i]=-1;
-
-         if (trend[i-1] == 1) changeOfTrend = 1;
-
-      }
-
-      else if (trend[i-1]==1) {
-
-         trend[i]=1;
-
-         changeOfTrend = 0;       
-
-      }
-
-      else if (trend[i-1]==-1) {
-
-         trend[i]=-1;
-
-         changeOfTrend = 0;
-
-      }
-
-
-
-      if (trend[i]<0 && trend[i-1]>0) {
-
-         flag=1;
-
-      }
-
-      else {
-
-         flag=0;
-
-      }
-
-      
-
-      if (trend[i]>0 && trend[i-1]<0) {
-
-         flagh=1;
-
-      }
-
-      else {
-
-         flagh=0;
-
-      }
-
-      
-
-      if (trend[i]>0 && Dn[i]<Dn[i-1]){
-
-         Dn[i]=Dn[i-1];
-
-		}
-
-      
-
-      if (trend[i]<0 && Up[i]>Up[i-1])
-
-        { Up[i]=Up[i-1];
-
-		}
-
-      
-
-      if (flag==1)
-
-       {  Up[i]=(H[i]+L[i])/2+(Factor*iATR[i]);;
-
-        } 
-
-      if (flagh==1)
-
-        { Dn[i]=(H[i]+L[i])/2-(Factor*iATR[i]);;
-
-         }
-
-      if (trend[i]==1) {
-
-         TrendUp[i]=Dn[i];
-
-         if (changeOfTrend == 1) {
-
-            TrendUp[i-1] = TrendDown[i-1];
-
-            changeOfTrend = 0;
-
-         }
-
-      }
-
-      else if (trend[i]==-1) {
-
-         TrendDown[i]=Up[i];
-
-         if (changeOfTrend == 1) {
-
-            TrendDown[i-1] = TrendUp[i-1];
-
-            changeOfTrend = 0;
-
-         }
-
-      }
-
-   } 
-
-
+  TrendUp[i] = Null;
+
+  TrendDown[i] = Null;
+  trend[i]=1;
+  if (Close[i]>Up[i-1]) {
+	 trend[i]=1;
+	 if (trend[i-1] == -1) changeOfTrend = 1;
+  }
+  else if (Close[i]<Dn[i-1]) {
+	 trend[i]=-1;
+	 if (trend[i-1] == 1) changeOfTrend = 1;
+  }
+  else if (trend[i-1]==1) {
+	 trend[i]=1;
+	 changeOfTrend = 0;       
+  }
+  else if (trend[i-1]==-1) {
+	 trend[i]=-1;
+	 changeOfTrend = 0;
+  }
+  if (trend[i]<0 && trend[i-1]>0) {
+	 flag=1;
+  }
+  else {
+	 flag=0;
+  }
+  if (trend[i]>0 && trend[i-1]<0) {
+	 flagh=1;
+  }
+  else {
+	 flagh=0;
+  }
+  if (trend[i]>0 && Dn[i]<Dn[i-1]){
+	 Dn[i]=Dn[i-1];
+	}
+  if (trend[i]<0 && Up[i]>Up[i-1])
+	{ Up[i]=Up[i-1];
+	}
+  if (flag==1)
+   {  Up[i]=(H[i]+L[i])/2+(Factor*iATR[i]);;
+
+	} 
+  if (flagh==1)
+	{ Dn[i]=(H[i]+L[i])/2-(Factor*iATR[i]);;
+	 }
+  if (trend[i]==1) {
+	 TrendUp[i]=Dn[i];
+	 if (changeOfTrend == 1) {
+		TrendUp[i-1] = TrendDown[i-1];
+		changeOfTrend = 0;
+	 }
+  }
+  else if (trend[i]==-1) {
+	 TrendDown[i]=Up[i];
+	 if (changeOfTrend == 1) {
+		TrendDown[i-1] = TrendUp[i-1];
+		changeOfTrend = 0;
+	 }
+  }
+} 
 
 Plot(TrendUp,"Trend",colorGreen);
-
 Plot(TrendDown,"Down",colorRed);
+
+{
+tn = TimeNum();
+
+// define start/end hours in TimeNum format
+StartTime = 91500;
+Endtime = 91500;
+
+// these conditions are true when TimeNum of the bar equals startime/endtime
+StartBar = tn == StartTime;
+EndBar = tn == Endtime;
+
+Session= TimeNum() >= 91800;
+
+O0 = TimeFrameGetPrice( "O", inDaily, 0 ); // open
+H0 = TimeFrameGetPrice( "H", inDaily, 0 ); // high
+L0 = TimeFrameGetPrice( "L", inDaily, 0 ); // low
+
+Plot( cdl(H0), "", colorBlue, styleLine + styleDashed + styleNoRescale,  64,0,0,0,0);
+
+myH=Null;
+myL=Null;
+myH = ValueWhen( EndBar, HighestSince( StartBar, High ) );
+myL = ValueWhen( EndBar, LowestSince( StartBar, Low ) );
+
+Plot( cdl(myH), "", colorWhite, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0 );
+Plot( cdl(myL), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+
+buy1=Null;
+sell1=Null;
+
+if (LastValue(L0) <= LastValue(Min(myL,L1))) {
+	//less than both pdl and irl
+	//buy should be only when it tries to cross min(myL,L1)
+	Buy1 = Cross (C, Min(myL,L1)) OR Cross (C, Min(H1, myH)) OR  Cross (C, Max(H1,myH));;
+}
+else if ((LastValue(L0) <= LastValue(myL)) AND (LastValue(L0) >= LastValue(L1))){
+	//less than irl but more than pdl
+	//buy can be when it tries to cross myL
+	Buy1 = Cross (C, myL) OR Cross (C, Min(H1, myH)) OR Cross (C, Max(H1,myH));
+}
+else if ((LastValue(L0) <= LastValue(L1)) AND (LastValue(L0) >= LastValue(myL))){
+	//less than pdl but more than IRL
+	//buy can be when it tries to cross myL
+	Buy1 = Cross (C, L1) OR Cross (C, Min(H1, myH)) OR Cross (C, Max(H1,myH));
+}
+//Sell = Cross (Max(myH,H1),C) OR Cross (Max(L1, myL),C);	
+if (LastValue(H0) >= LastValue(Max(myH,H1))) {
+	//more than both pdh and irh
+	//sell should be only when it tries to cross max(myH,H1)
+	Sell1 = Cross (Max(myH,H1),C) OR Cross (Max(L1, myL),C) OR Cross (Min(L1, myL),C);
+}
+else if ((LastValue(H0) >= LastValue(myH)) AND (LastValue(H0) <= LastValue(H1))){
+	//more than irH but more than pdH
+	//sell can be when it tries to cross myL
+	Sell1 = Cross (myH, C) OR Cross (Max(L1, myL),C) OR Cross (Min(L1, myL),C);
+}
+else if ((LastValue(H0) >= LastValue(H1)) AND (LastValue(H0) <= LastValue(myH))){
+	//more than pdh but less than IRH
+	//sell can be when it tries to cross myL
+	Sell1 = Cross ( H1,C) OR Cross (Max(L1, myL),C) OR Cross (Min(L1, myL),C);
+}
+
+}
 
 Length =200;//Optimize("HMA",100,10,300,1);
 
-Buy = trend==1 AND c>EMA(C,Length);
+Buy = (trend==1 AND c>EMA(C,Length)) AND buy1;
 Sell=trend==-1 ;
 
-Short=trend==-1  and C<EMA(C,Length);
+Short=(trend==-1  and C<EMA(C,Length)) AND sell1;
 Cover=trend==1;
 
 Buy=ExRem(Buy,Sell);
