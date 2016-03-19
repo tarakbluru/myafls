@@ -1,0 +1,43 @@
+H0 = TimeFrameGetPrice( "H", inDaily, 0); // today's high
+L0 = TimeFrameGetPrice( "L", inDaily, 0); // low
+TimeFrameSet(inHourly);
+crossadxd= Cross (EMA(ADX(),15), ADX());
+crossadx_down = crossadxd AND (NOT(Ref(crossadxd, -1)));
+crossadxu = Cross (ADX(), EMA(ADX(),15));
+crossadx_up = crossadxu AND (NOT(Ref(crossadxu, -1)));
+
+cross_stochd_d= Cross (StochD(),StochK());
+cross_stochd_down = cross_stochd_d AND (NOT(Ref(cross_stochd_d, -1)));
+cross_stochd_u = Cross (StochK(),StochD());
+cross_stochd_up = cross_stochd_u AND (NOT(Ref(cross_stochd_u, -1)));
+
+cross_stochd_os_entry= Cross (20,StochD());
+cross_stochd_os_entry_confirm = cross_stochd_os_entry AND (NOT(Ref(cross_stochd_os_entry, -1)));
+cross_stochd_ob_entry = Cross (StochD(),80);
+cross_stochd_ob_entry_confirm = cross_stochd_ob_entry AND (NOT(Ref(cross_stochd_ob_entry, -1)));
+
+adxFilter = (crossadx_up OR crossadx_down);
+adxFilter =0;
+stocFilter = (cross_stochd_up OR cross_stochd_down);
+stocFilter =0;
+os_ob_Filter = cross_stochd_os_entry_confirm OR cross_stochd_ob_entry_confirm;
+//os_ob_Filter = 0;
+Filter = adxFilter OR stocFilter OR os_ob_Filter;
+
+//AlertIF( crossadx_up, "SOUND C:\\Windows\\Media\\Ding.wav", "Audio alert", 1 );
+//AlertIF( crossadx_down, "SOUND C:\\Windows\\Media\\Ding.wav", "Audio alert", 2 );
+//AlertIF( cross_stochd_up, "SOUND C:\\Windows\\Media\\Ding.wav", "Audio alert", 1 );
+//+AlertIF( cross_stochd_down, "SOUND C:\\Windows\\Media\\Ding.wav", "Audio alert", 2 );
+AlertIF( cross_stochd_ob_entry_confirm, "SOUND C:\\Windows\\Media\\Ding.wav", "Audio alert", 1 );
+AlertIF( cross_stochd_os_entry_confirm, "SOUND C:\\Windows\\Media\\Ding.wav", "Audio alert", 2 );
+
+AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );
+AddColumn(C, "CMP", 1.2);
+AddColumn(H0, "DH", 1.2);
+AddColumn(L0, "DL", 1.2);
+AddColumn(stochd(15,3,3),"stocd", 1.2);
+AddColumn(stochk(15,3),"stock", 1.2);
+AddColumn(ADX(),"adx", 1.2);
+TimeFrameRestore() ;
+
