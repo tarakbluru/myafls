@@ -33,10 +33,13 @@ function PopupWindowEx( popupID, bodytext, captiontext, timeout, left, top )
 
 _SECTION_BEGIN("SuperTrend Ver 4");
 
+TimeFrameSet(3*in1Minute);
+
 SetBarsRequired(100000,0);
 //TIME FRAME CALCULATION
 H1 = TimeFrameGetPrice( "H", inDaily, -1 ); // yesterdays high
 L1 = TimeFrameGetPrice( "L", inDaily, -1 ); // low
+C1 = TimeFrameGetPrice( "C", inDaily, -1 ); // low
 
 
 GraphXSpace = 15;
@@ -55,6 +58,8 @@ Plot(C,"\nPrice",IIf(C>O,ParamColor("Wick UP Color", colorDarkGreen),IIf(C<=O,Pa
 
 Plot( cdl( H1 ), "", colorRed, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0);
 Plot( cdl( L1 ), "", colorGreen, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0);
+//Plot( H1, "", colorRed, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0);
+//Plot( L1, "", colorGreen, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0);
 
 
 SetTradeDelays(1,1,1,1);
@@ -62,7 +67,7 @@ SetTradeDelays(1,1,1,1);
 SetPositionSize(100,spsShares);
 
 
-sig = 0;
+sig = "";
 bars =0; 
 tar1 =0;
 tar2 = 0;
@@ -184,12 +189,111 @@ myL=Null;
 myH = ValueWhen( EndBar, HighestSince( StartBar, High ) );
 myL = ValueWhen( EndBar, LowestSince( StartBar, Low ) );
 
+
+if (LastValue(myH) < 100 ) {
+	add = 0.5;
+	div = 1;
+}
+else if (LastValue(myH) < 1000) {
+	add = 5;
+	div = 10;
+}
+else if (LastValue(myH) < 10000) {
+	add = 50;
+	div = 100;
+}
+else {
+	add = 500;
+	div = 1000;
+}
+
+myBRN_above1 = int((int(myH+add))/div)*div;
+myBRN_above2 = myBRN_above1+2*add;
+myBRN_above3 = myBRN_above2+2*add;
+myBRN_above4 = myBRN_above3+2*add;
+myBRN_above5 = myBRN_above4+2*add;
+
+myBRN_below1 = int((int(myH-add))/div)*div;
+myBRN_below2 = myBRN_below1 - 2*add;
+myBRN_below3 = myBRN_below2 - 2*add;
+myBRN_below4 = myBRN_below3 - 2*add;
+myBRN_below5 = myBRN_below4 - 2*add;
+
+
+myRN_above1 = myBRN_above1+add;
+myRN_above2 = myRN_above1+2*add;
+myRN_above3 = myRN_above2+2*add;
+myRN_above4 = myRN_above3+2*add;
+myRN_above5 = myRN_above4+2*add;
+
+myRN_below1 = myBRN_below1+add;
+myRN_below2 = myRN_below1-2*add;
+myRN_below3 = myRN_below2-2*add;
+myRN_below4 = myRN_below3-2*add;
+myRN_below5 = myRN_below4-2*add;
+
+//_TRACE("myBRN"+myBRN_above1);
+//_TRACE("myRN"+myRN2);
+
 Plot( cdl(myH), "", colorWhite, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0 );
-Plot( cdl(myL), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+Plot( cdl(myL), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );//
+//Plot( myH, "", colorWhite, styleLine + styleDashed + styleNoRescale, 64,0,0,0,0 );
+//Plot( myL, "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );//
 
-buy1=Null;
-sell1=Null;
+//Plot( cdl(myBRN_above1), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myBRN_above2), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myBRN_above3), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myBRN_above4), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myBRN_above5), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
 
+//Plot( cdl(myRN_above1), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myRN_above2), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myRN_above3), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myRN_above4), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myRN_above5), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+
+//Plot( cdl(myBRN_below1), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myBRN_below2), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myBRN_below3), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myBRN_below4), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myBRN_below5), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+
+//Plot( cdl(myRN_below1), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myRN_below2), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myRN_below3), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myRN_below4), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+//Plot( cdl(myRN_below5), "", colorWhite, styleLine + styleDashed + styleNoRescale,64,0,0,0,0 );
+
+
+buy1=0;
+sell1=0;
+buy3 = Cross (C, Min(myL,L1)) OR Cross (C, max(myL, L1)) OR  Cross (C, Min(H1,myH)) OR Cross (C, Max(H1,myH)) OR Cross(C,H1);
+sell3 = Cross ( Max(H1,myH),C) OR Cross (Min(H1,myH),C) OR Cross (Max(L1, myL),C) OR Cross (Min(L1, myL),C) OR Cross(H1,C);
+
+buy2  = ( (Ref(stochd(), -2) <= Ref(stochd(), -1)) AND (Ref(stochd(), -3) < 20));// AND (Cross (StochK(), StochD()));
+sell2 = ( (Ref(stochd(), -2) >= Ref(stochd(), -1)) AND (Ref(stochd(), -3) > 80));// AND (Cross (StochD(), StochK()));
+
+buy4 = Cross (C, myBRN_above1) OR Cross (C, myBRN_above2) OR Cross (C, myBRN_above3) OR Cross (C, myBRN_above4) OR Cross (C, myBRN_above5);
+buy5 = Cross (C, myBRN_below1) OR Cross (C, myBRN_below2) OR Cross (C, myBRN_below3) OR Cross (C, myBRN_below4) OR Cross (C, myBRN_below5);
+
+buy6 = Cross (C, myRN_above1) OR Cross (C, myRN_above2) OR Cross (C, myRN_above3) OR Cross (C, myRN_above4) OR Cross (C, myRN_above5);
+buy7 = Cross (C, myRN_below1) OR Cross (C, myRN_below2) OR Cross (C, myRN_below3) OR Cross (C, myRN_below4) OR Cross (C, myRN_below5);
+
+buy8 = Cross (C, C1);
+
+sell4 = Cross ( myBRN_above1, C) OR Cross (myBRN_above2, C) OR Cross (myBRN_above3, C) OR Cross (myBRN_above4,C) OR Cross (myBRN_above5,C);
+sell5 = Cross (myBRN_below1, C) OR Cross (myBRN_below2, C) OR Cross (myBRN_below3,C) OR Cross (myBRN_below4,C) OR Cross (myBRN_below5,C);
+
+sell6 = Cross (myRN_above1, C) OR Cross (myRN_above2,C) OR Cross (myRN_above3,C) OR Cross (myRN_above4,C) OR Cross (myRN_above5,C);
+sell7 = Cross (myRN_below1, C) OR Cross (myRN_below2,C) OR Cross (myRN_below3,C) OR Cross (myRN_below4,C) OR Cross (myRN_below5,C);
+
+sell8= Cross(C1, C);
+
+buy1 = buy3 OR buy4 OR buy5 OR buy6 OR buy7 OR buy8;
+sell1 = sell3 OR sell4 OR sell5 OR sell6 OR sell7 OR sell8;
+
+
+/*
 if (LastValue(L0) <= LastValue(Min(myL,L1))) {
 	//less than both pdl and irl
 	//buy should be only when it tries to cross min(myL,L1)
@@ -221,16 +325,25 @@ else if ((LastValue(H0) >= LastValue(H1)) AND (LastValue(H0) <= LastValue(myH)))
 	//sell can be when it tries to cross myL
 	Sell1 = Cross ( H1,C) OR Cross (Max(L1, myL),C) OR Cross (Min(L1, myL),C);
 }
-
+*/
 }
 
 Length =200;//Optimize("HMA",100,10,300,1);
 
+//Buy = buy1;
 Buy = (trend==1 AND c>EMA(C,Length)) AND buy1;
+//Buy = (trend==1 AND buy1);
 Sell=trend==-1 ;
 
 Short=(trend==-1  and C<EMA(C,Length)) AND sell1;
+//Short=(trend==-1 AND sell1);
+//Short = sell1;
 Cover=trend==1;
+
+Buy2=Buy;
+Sell2=Sell;
+Short2=Short;
+cover2=Cover;
 
 Buy=ExRem(Buy,Sell);
 Sell=ExRem(Sell,Buy);
@@ -291,10 +404,6 @@ if (short[BarCount-2]==true)
 {
 PopupWindowEx( "ID:2", "Get Ready to SHORT  \n"+Name() + "  "+ Interval(2) + "  :  "+ " Last ="+LastClose , "Short   Alert ", 1000, 1, 150 ) ;
 }
-
-
-
-
 
 TrendSL=IIf(trend==1,TrendUp,TrendDown);
 
@@ -393,6 +502,7 @@ sellach3 = IIf((Short OR Shrt AND NOT Relax AND NOT Sell AND NOT Buy AND NOT Lon
 
 
 // Message Board ----------------- 
+
 GfxSelectFont( "Tahoma", 13, 100 ); 
 
 GfxSetBkMode( 1 ); 
@@ -472,25 +582,30 @@ GfxTextOut
 ( ("" + WriteIf (Long OR Buy OR Shrt OR Short, "Target 3: "+tar3,"")), 13, y-25); 
 
 GfxTextOut 
-( ("" + WriteIf (buyach1, "Target 1: "+tar1+" :: Achiecheved","")), 13, y-65); 
+( ("" + WriteIf (buyach1, "Target 1: "+tar1+" :: Achieved","")), 13, y-65); 
 
 GfxTextOut 
-( ("" + WriteIf (sellach1, "Target 1: "+tar1+" :: Achiecheved","")), 13, y-65); 
+( ("" + WriteIf (sellach1, "Target 1: "+tar1+" :: Achieved","")), 13, y-65); 
 
 GfxTextOut 
-( ("" + WriteIf (buyach2, "Target 2: "+tar2+" :: Achiecheved","")), 13, y-45); 
+( ("" + WriteIf (buyach2, "Target 2: "+tar2+" :: Achieved","")), 13, y-45); 
 
 GfxTextOut 
-( ("" + WriteIf (sellach2, "Target 2: "+tar2+" :: Achiecheved","")), 13, y-45); 
+( ("" + WriteIf (sellach2, "Target 2: "+tar2+" :: Achieved","")), 13, y-45); 
 
 GfxTextOut 
-( ("" + WriteIf (buyach3, "Target 3: "+tar3+" :: Achiecheved","")), 13, y-25); 
+( ("" + WriteIf (buyach3, "Target 3: "+tar3+" :: Achieved","")), 13, y-25); 
 
 GfxTextOut 
-( ("" + WriteIf (sellach3, "Target 3: "+tar3+" :: Achiecheved","")), 13, y-25); 
+( ("" + WriteIf (sellach3, "Target 3: "+tar3+" :: Achieved","")), 13, y-25); 
 
 
-
+//Exploration
+//V1 = TimeFrameGetPrice( "V", inDaily, -1 ); // volume
+//Filter = C>100 AND V1 > 1000;
+Filter = 1;
+Buy=Buy2;
+Short=Short2;
 Filter=Buy OR Short; 
 AddColumn( IIf( Buy, 66 , 83 ), "Signal", formatChar, colorDefault, IIf( Buy , colorGreen, colorRed ) ); 
 AddColumn(Close,"Entry Price",1.4, colorDefault, IIf( Buy , colorGreen, colorRed )); 
@@ -590,7 +705,7 @@ GfxSetTextColor(ParamColor("Color",colorYellow) );
 
 GfxTextOut(""+DD+"  ("+xx+"%)", Hor , Ver+45 );
 
-
+TimeFrameRestore() ;
 _SECTION_END();
 
 _SECTION_BEGIN("EMA1");
