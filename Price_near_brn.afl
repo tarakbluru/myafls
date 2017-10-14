@@ -1,0 +1,106 @@
+_SECTION_BEGIN("pricenearbrn");
+
+ticker = Name ();
+curint = Interval(2);
+
+lastC = round (Ref(C, 0));
+pDayH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
+pDayL = TimeFrameGetPrice("L", inDaily, -1);	// yesterdays low
+pDayC = TimeFrameGetPrice("C", inDaily, -1);	// yesterdays close
+pDayMid = (pDayH+pDayL)/2;
+
+DayO = TimeFrameGetPrice("O", inDaily, 0);	//	day open
+DayH = TimeFrameGetPrice("H", inDaily, 0);	//	day high
+DayL = TimeFrameGetPrice("L", inDaily, 0);	//	day low
+
+brn = int ((lastC+51)/100)*100;
+rn = IIf(brn - 50 > 0, brn-50, 0);
+ 
+nbrn = brn+100;
+nrn = nbrn - 50;
+
+n1brn = IIf(brn-100 > 0, brn-100, 0);
+n1rn = IIf(n1brn-50 > 0, n1brn-50, 0);
+
+pDayC_brn =  (((pDayC - brn)/brn)*100);
+pDayC_nbrn = (((pDayC - nbrn)/nbrn)*100);
+pDayC_n1brn = (((pDayC - n1brn)/n1brn)*100);
+
+C_brn =  ((abs  (lastC - brn)/brn)*100);
+C_nbrn = ((abs  (lastC - nbrn)/nbrn)*100);
+C_n1brn = ((abs  (lastC - n1brn)/n1brn)*100);
+
+TimeFrameSet( in1Minute*30 ); // switch now to 30min
+adx30m = (ADX()/25);
+adx30m_buy_strength = (IIf(int (PDI()/MDI()) > 0, ((int(ADX()/25))) + (ADX() > Ref(ADX(),-1)), 0));
+adx30m_sell_strength = (IIf(int (MDI()/PDI()) > 0, ((int(ADX()/25))) + (ADX() > Ref(ADX(),-1)), 0));
+TimeFrameRestore(); // restore time frame to original
+
+adx30m_buy_strength_exp5m = TimeFrameExpand(adx30m_buy_strength, in1Minute*30);
+adx30m_sell_strength_exp5m = TimeFrameExpand(adx30m_sell_strength, in1Minute*30);
+
+adx30M_exp5m = TimeFrameExpand(adx30m, in1Minute*30);
+
+C_near_brn = IIf (C_brn < (adx30M_exp5m*4), 1, 0);
+C_near_nbrn = IIf (C_nbrn < (adx30M_exp5m*4), 1, 0);
+C_near_n1brn = IIf (C_n1brn < (adx30M_exp5m*4), 1, 0);
+
+pDayC_near_brn = IIf (abs(pDayC_brn) < 1.0, 1, 0);
+
+gap_down_sell = (Ref(C,-1) >= pDayL) AND (C <= pDayL);
+gap_up_buy  = (Ref(C,-1) <= pDayH) AND (C >= pDayH);
+
+C_pdc = abs(C-pDayC)/pDayC*100;
+
+c_day_buy =  (Cross(C, pDayH) OR Cross(C, pDayC) OR gap_up_buy ) AND (C > O) AND (C >= dayO) AND (C > pDayMid);
+c_day_sell = (Cross(pDayL, C) OR Cross(pDayC, C) OR gap_down_sell) AND (C < O) AND (C <= dayO) AND (C < pDayMid);
+
+pdayc_buy_strength1 = IIf (abs(pDayC-pDayH) < abs (pDayC-pDayL), 1, 0);
+pdayc_sell_strength1 = IIf (abs(pDayC-pDayL) < abs (pDayC-pDayH), 1, 0);
+
+pdayc_buy_strength2 = 2*((pDayC_near_brn) AND (pDayC_brn>0));
+pdayc_sell_strength2 = 2*((pDayC_near_brn) AND (pDayC_brn<0));
+
+pdayc_buy_strength = pdayc_buy_strength1 + pdayc_buy_strength2;
+pdayc_sell_strength = pdayc_sell_strength1 + pdayc_sell_strength2;
+
+
+c_day_buy_strength = pdayc_buy_strength + (DayO > pDayMid)+(DayO > pDayH)+(DayO > pDayC)+(DayH > pDayH)+(C > dayO)+(C > pDayH) + (C > pDayMid) + (C_pdc < 1);
+c_day_sell_strength = pdayc_sell_strength + (DayO < pDayMid)+(DayO < pDayL)+(DayO < pDayC)+(DayL < pDayL)+(C < dayO)+(C < pDayL) + (C < pDayMid) + (C_pdc < 1);
+
+EMA_buy_strength =  (EMA (C,15)  > EMA (C,25)) AND (EMA (C,15) > Ref(EMA (C,15),-1));
+EMA_sell_strength =  (EMA (C,15)  < EMA (C,25)) AND (EMA (C,15) < Ref(EMA (C,15),-1));
+
+
+buy_strength_tmp = adx30m_buy_strength_exp5m + EMA_buy_strength + Cross(C, pDayH) + (C > O) + c_day_buy_strength;
+sell_strength_tmp = adx30m_sell_strength_exp5m + EMA_sell_strength + Cross(pDayL, C) + (C < O) + c_day_sell_strength;
+
+buy_strength1  = IIf(buy_strength_tmp  > sell_strength_tmp, buy_strength_tmp-sell_strength_tmp, 0);
+sell_strength1 = IIf(sell_strength_tmp > buy_strength_tmp, sell_strength_tmp-buy_strength_tmp, 0);
+
+//First candle strength
+
+//candle close - how far from high
+candle_buy_strength =  (abs(C-H)/C)*100 < 0.1;
+candle_sell_strength = (abs(C-L)/C)*100 < 0.1;
+
+buy_strength = IIf(buy_strength1  > sell_strength1,  buy_strength1 + candle_buy_strength, 0);
+sell_strength = IIf(sell_strength1  > buy_strength1, sell_strength1 + candle_sell_strength, 0);
+
+
+Filter = (C_near_brn OR C_near_nbrn OR C_near_n1brn) AND ((c_day_buy AND buy_strength >6) OR  (c_day_sell AND sell_strength >6) ) ;
+
+SetOption("NoDefaultColumns", True );
+AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
+//AddColumn(C_near_brn, "brn", 1.2);
+//AddColumn(C_near_nbrn, "nbrn", 1.2);
+//AddColumn(C_near_n1brn, "n1brn", 1.2);
+AddColumn(buy_strength, "buy_s", 1.0);
+AddColumn(sell_strength, "sell_s", 1.0);
+AddColumn(C, "CMP", 1.2);
+AddColumn(C_pdc, "%change", 1.2);
+
+AlertIf(Filter, "","nbrn "+NumToStr(C)+" "+NumToStr(buy_strength)+" "+NumToStr(sell_strength));
+
+_SECTION_END();

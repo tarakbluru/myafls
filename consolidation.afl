@@ -1,0 +1,108 @@
+_SECTION_BEGIN("consolidation");
+
+ticker = Name ();
+curint = Interval(2);
+
+pDayH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
+pDayL = TimeFrameGetPrice("L", inDaily, -1);	// yesterdays low
+pDayC = TimeFrameGetPrice("C", inDaily, -1);	// yesterdays close
+
+DayO = TimeFrameGetPrice("O", inDaily, 0);	//	day open
+DayH = TimeFrameGetPrice("H", inDaily, 0);	//	day high
+DayL = TimeFrameGetPrice("L", inDaily, 0);	//	day low
+
+lastC = round (Ref(C, -1));
+
+brn = int ((lastC+51)/100)*100;
+rn = IIf(brn - 50 > 0, brn-50, 0);
+ 
+nbrn = brn+100;
+nrn = nbrn - 50;
+
+n1brn = IIf(brn-100 > 0, brn-100, 0);
+n1rn = n1brn + 50;
+
+brnBuy = Cross(C,n1brn) OR Cross (C, n1rn) OR Cross(C,brn) OR Cross (C, rn) OR Cross(C,nbrn) OR Cross(C,nrn) ;
+brnSell = Cross(n1brn,C) OR Cross (n1rn, C) OR Cross(brn,C) OR Cross (rn, C) OR Cross(nbrn,C) OR Cross (nrn, C);
+
+HHV_bars = HHVBars (H,7);
+LLV_bars = LLVBars (L,7);
+
+Low_7 = LLV (L, 7); High_7 = HHV (H, 7);
+Low_6_t = LLV (L, 6); High_6_t = HHV (H, 6);
+Low_5_t = LLV (L, 5); High_5_t = HHV (H, 5);
+Low_4_t = LLV (L, 4); High_4_t = HHV (H, 4);
+Low_3_t = LLV (L, 3); High_3_t = HHV (H, 3);
+Low_2_t = LLV (L, 2); High_2_t = HHV (H, 2);
+
+Low_6  = Ref (Low_6_t, -1); High_6  = Ref (High_6_t, -1);
+Low_5  = Ref (Low_5_t, -2); High_5  = Ref (High_5_t, -2);
+Low_4  = Ref (Low_4_t, -3); High_4  = Ref (High_4_t, -3);
+Low_3  = Ref (Low_3_t, -4); High_3  = Ref (High_3_t, -4);
+Low_2  = Ref (Low_2_t, -5); High_2  = Ref (High_2_t, -5);
+
+consolidated_low  = (IIf ((Low_7  == Low_6), 1, 0)) AND (IIf ((Low_7  == Low_5), 1, 0)) AND (IIf ((Low_7  == Low_4),1, 0 )) AND (IIf ((Low_7  == Low_3 ), 1, 0)) AND (IIf ((Low_7 ==  Low_2 ), 1, 0));
+consolidated_high = (IIf ((High_7 == High_6),1, 0)) AND (IIf ((High_7 == High_5),1, 0)) AND (IIf ((High_7 == High_4),1, 0)) AND (IIf ((High_7 == High_3), 1, 0)) AND (IIf ((High_7 == High_2), 1, 0));
+
+brn_buy_strength = Cross (C, n1brn) + Cross(C,brn) + Cross(C,nbrn);
+brn_sell_strength = Cross (n1brn, C) + Cross(brn,C) + Cross(nbrn,C);
+
+RSI_Calc = RSI();
+RSI_buy_strength = (RSI_Calc > 50);
+RSI_sell_strength = (RSI_Calc < 50);
+
+ADX_buy_strength = (IIf(int (PDI()/MDI()) > 0, ((int(ADX()/25))) + (ADX() > Ref(ADX(),-1)), 0));
+ADX_sell_strength = (IIf(int (MDI()/PDI()) > 0, ((int(ADX()/25))) + (ADX() > Ref(ADX(),-1)), 0));
+
+c_day_buy_strength = (DayO > pDayH)+(DayO > pDayC)+(DayH > pDayH)+(C > pDayH) + (C > DayO);
+c_day_sell_strength = (DayO < pDayL)+(DayO < pDayC)+(DayL < pDayL)+(C < pDayL) + (C < DayO);
+
+TimeFrameSet( inHourly*4 ); // switch now to 4 hourly
+ma240m_15 = EMA( C, 15 ); // 15 bar moving average from hourly data
+ma240m_25 = EMA( C, 25 ); // 25 bar moving average from hourly data
+ema240m_buy_strength = (ma240m_15 > ma240m_25)+(ma240m_15 > Ref(ma240m_15,-1));
+ema240m_sell_strength = (ma240m_15 < ma240m_25)+(ma240m_15 < Ref(ma240m_15,-1));
+TimeFrameRestore(); // restore time frame to original
+
+ema30m_buy_strength = TimeFrameExpand( ema240m_buy_strength, inHourly*4);
+ema30m_sell_strength = TimeFrameExpand( ema240m_sell_strength, inHourly*4);
+
+EMA_buy_strength_tmp = ema30m_buy_strength + (C > EMA (C,15)); 
+EMA_sell_strength_tmp = ema30m_sell_strength + (C < EMA (C,15));
+
+EMA_buy_strength = IIf (EMA_buy_strength_tmp > EMA_sell_strength_tmp, EMA_buy_strength_tmp-EMA_sell_strength_tmp, 0);
+EMA_sell_strength = IIf (EMA_sell_strength_tmp > EMA_buy_strength_tmp, EMA_sell_strength_tmp-EMA_buy_strength_tmp, 0);
+
+
+buyStrength = IIf(ADX_buy_strength >= 1,  (brnBuy  + EMA_buy_strength + brn_buy_strength + RSI_buy_strength + ADX_buy_strength + c_day_buy_strength), 0); 
+SellStrength = IIf(ADX_sell_strength >= 1, (brnSell + EMA_sell_strength + brn_sell_strength + RSI_sell_strength + ADX_sell_strength + c_day_sell_strength), 0);
+
+consol_strength_t = (LLV_bars == HHV_bars) + (abs(LLV_bars-HHV_bars) < 2);
+consol_strength = consol_strength_t + Ref(consol_strength_t, -1) + Ref(consol_strength_t,-2); 
+consolidated = (consolidated_low AND consolidated_high);
+
+Filter = (Ref(consolidated,0)) AND (consol_strength >2) AND (((buyStrength > 2) AND (SellStrength < 1 )) OR ((buyStrength < 1) AND (SellStrength > 2)));
+
+
+AlertIf(Filter, "","",0,1);
+
+SetOption("NoDefaultColumns", True );
+AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
+AddColumn(C, "CMP", 1.2);
+//AddColumn(pDayH, "DH", 1.2);
+//AddColumn(pDayL, "DL", 1.2);
+//AddColumn(buyStrength, "BuyS", 1.2);
+//AddColumn(sellStrength, "sellS", 1.2);
+AddColumn(consol_strength, "constrength", 1.2);
+//AddColumn(int(ADX ()/25), "ADX/25", 1.2);
+//AddColumn(EMA_buy_strength, "emabuys", 1.2);
+//AddColumn(EMA_sell_strength, "emasells", 1.2);
+
+//AddColumn(RSI_buy_strength, "rsi_bs", 1.2);
+//AddColumn(RSI_sell_strength, "rsi_ss", 1.2);
+
+//AddColumn(int(PDI ()/ MDI()), "P/M", 1.2);
+//AddColumn(int(MDI ()/ PDI()), "M/P", 1.2);
+
+_SECTION_END();
