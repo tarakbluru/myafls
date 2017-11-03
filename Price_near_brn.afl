@@ -1,18 +1,21 @@
-_SECTION_BEGIN("pricenearbrn");
+_SECTION_BEGIN("price_action_nearbrn");
 
 ticker = Name ();
 curint = Interval(2);
 
-lastC = round (Ref(C, 0));
+//Get Previous Day data
+pDayO = TimeFrameGetPrice("O", inDaily, -1);	// yesterdays open
 pDayH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
 pDayL = TimeFrameGetPrice("L", inDaily, -1);	// yesterdays low
 pDayC = TimeFrameGetPrice("C", inDaily, -1);	// yesterdays close
-pDayMid = (pDayH+pDayL)/2;
 
+//Get Today's Data
 DayO = TimeFrameGetPrice("O", inDaily, 0);	//	day open
 DayH = TimeFrameGetPrice("H", inDaily, 0);	//	day high
 DayL = TimeFrameGetPrice("L", inDaily, 0);	//	day low
 
+//Calculation of BRN and RN
+lastC = round (Ref(C, 0));
 brn = int ((lastC+51)/100)*100;
 rn = IIf(brn - 50 > 0, brn-50, 0);
  
@@ -22,73 +25,231 @@ nrn = nbrn - 50;
 n1brn = IIf(brn-100 > 0, brn-100, 0);
 n1rn = IIf(n1brn-50 > 0, n1brn-50, 0);
 
-pDayC_brn =  (((pDayC - brn)/brn)*100);
-pDayC_nbrn = (((pDayC - nbrn)/nbrn)*100);
-pDayC_n1brn = (((pDayC - n1brn)/n1brn)*100);
+//Near BRN findings
+C_brn =  abs  (lastC - brn)/(lastC)*100;
+C_nbrn = abs  (lastC - nbrn)/(lastC)*100;
+C_n1brn = abs (lastC - n1brn)/(lastC)*100;
 
-C_brn =  ((abs  (lastC - brn)/brn)*100);
-C_nbrn = ((abs  (lastC - nbrn)/nbrn)*100);
-C_n1brn = ((abs  (lastC - n1brn)/n1brn)*100);
+C_near_brn = IIf (C_brn < 2, 2, 0);   //if less than 2% then near brn = true
+C_near_nbrn = IIf (C_nbrn < 2, 2, 0);
+C_near_n1brn = IIf (C_n1brn < 2, 2, 0);
 
-TimeFrameSet( in1Minute*30 ); // switch now to 30min
-adx30m = (ADX()/25);
-adx30m_buy_strength = (IIf(int (PDI()/MDI()) > 0, ((int(ADX()/25))) + (ADX() > Ref(ADX(),-1)), 0));
-adx30m_sell_strength = (IIf(int (MDI()/PDI()) > 0, ((int(ADX()/25))) + (ADX() > Ref(ADX(),-1)), 0));
+//Near RN findings
+C_rn =  abs  (lastC - rn)/(lastC)*100;
+C_nrn = abs  (lastC - nrn)/(lastC)*100;
+C_n1rn = abs (lastC - n1rn)/(lastC)*100;
+
+C_near_rn   = IIf (C_rn < 2, 1, 0);  //if less than 2% then near brn = true
+C_near_nrn  = IIf (C_nrn < 2, 1, 0);
+C_near_n1rn = IIf (C_n1rn < 2, 1, 0);
+
+//previous close near brn findings
+pDayC_brn =  ((pDayC - brn)/(pDayC))*100;       
+pDayC_nbrn = ((pDayC - nbrn)/(pDayC))*100;
+pDayC_n1brn = ((pDayC - n1brn)/(pDayC))*100;  
+
+pDayC_near_brn = IIf (abs(pDayC_brn) < 2.0, 2, 0);
+
+//previous close near rn findings
+pDayC_rn =  (((pDayC - rn)/(pDayC))*100);  
+pDayC_near_rn = IIf (abs(pDayC_rn) < 1.0, 1, 0);
+
+//Monthly and Weekly resistances
+TimeFrameSet( inDaily ); // switch now to Daily
+C_1 = Ref(H,-1);
+m_res_comp = HHV(C_1, 30);
+m_sup_comp = LLV(C_1, 30);
+w_res_comp = HHV(C_1, 7);
+w_sup_comp = LLV(C_1, 7);
 TimeFrameRestore(); // restore time frame to original
 
-adx30m_buy_strength_exp5m = TimeFrameExpand(adx30m_buy_strength, in1Minute*30);
-adx30m_sell_strength_exp5m = TimeFrameExpand(adx30m_sell_strength, in1Minute*30);
+m_res = TimeFrameExpand(m_res_comp, inDaily);
+m_sup = TimeFrameExpand(m_sup_comp, inDaily);
+w_res = TimeFrameExpand(w_res_comp, inDaily);
+w_sup = TimeFrameExpand(w_sup_comp, inDaily);
 
-adx30M_exp5m = TimeFrameExpand(adx30m, in1Minute*30);
+m_res_buy_strength  =  IIf (( O>m_res), 2, 0) + IIf ((C>m_res), 4, 0);
+m_sup_sell_strength =  IIf (( O<m_sup), 2, 0) + IIf ((C>m_sup), 4, 0);
 
-C_near_brn = IIf (C_brn < (adx30M_exp5m*4), 1, 0);
-C_near_nbrn = IIf (C_nbrn < (adx30M_exp5m*4), 1, 0);
-C_near_n1brn = IIf (C_n1brn < (adx30M_exp5m*4), 1, 0);
+w_res_buy_strength  = IIf  ((O>w_res), 1, 0) + IIf  ((c>w_res), 2, 0);
+w_sup_sell_strength = IIf  ((O<w_sup), 1, 0) + IIf  ((C<w_sup), 2, 0);
 
-pDayC_near_brn = IIf (abs(pDayC_brn) < 1.0, 1, 0);
+//4HR - Peaks
+TimeFrameSet( in1Minute*240 ); // switch now to Daily
+hr4_peak_comp = Peak (C, 2.4);
+hr4_trough_comp = trough (C, 2.4);
+TimeFrameRestore(); // restore time frame to original
+
+hr4_peak = TimeFrameExpand (hr4_peak_comp,in1Minute*240);
+hr4_trough = TimeFrameExpand (hr4_trough_comp, in1Minute*240);
+
+hr4_peak_buy_strength = IIf   ((O>hr4_peak), 2, 0) + IIf ((C>hr4_peak), 2, 0);
+hr4_trough_buy_strength = IIf (( O>hr4_trough), 1, 0) + IIf ((C>hr4_trough), 1, 0);
+
+hr4_peak_sell_strength = IIf   ((O<hr4_peak), 1, 0) + IIf ((C<hr4_peak), 1, 0);
+hr4_trough_sell_strength = IIf (( O<hr4_trough), 2, 0) + IIf ((C<hr4_trough), 2, 0);
+
+//30m - Peaks
+TimeFrameSet( in1Minute*30 ); // switch now to Daily
+m30_peak_comp = Peak (C, 0.7);
+m30_trough_comp = trough (C, 0.7);
+TimeFrameRestore(); // restore time frame to original
+
+m30_peak = TimeFrameExpand (m30_peak_comp,in1Minute*30);
+m30_trough = TimeFrameExpand (m30_trough_comp, in1Minute*30);
+
+m30_peak_buy_strength = IIf   ((O>m30_peak), 2, 0) + IIf ((C>m30_peak), 2, 0);
+m30_trough_buy_strength = IIf (( O>m30_trough), 1, 0) + IIf ((C>m30_trough), 1, 0);
+
+m30_peak_sell_strength = IIf   ((O<m30_peak), 2, 0) + IIf ((C<m30_peak), 2, 0);
+m30_trough_sell_strength = IIf (( O<m30_trough), 1, 0) + IIf ((C<m30_trough), 1, 0);
+
+/*
+TimeFrameSet( in1Minute*30 ); // switch now to 30min
+adx30m = (ADX()/25);
+ADX_acc30m = adx30m - Ref(adx30m, -1);
+adx30m_buy_strength_30m = (IIf(int (PDI()/MDI()) > 0, ((int(ADX()/25))) + (ADX() > Ref(ADX(),-1)), 0));
+adx30m_sell_strength_30m = (IIf(int (MDI()/PDI()) > 0, ((int(ADX()/25))) + (ADX() > Ref(ADX(),-1)), 0));
+TimeFrameRestore(); // restore time frame to original
+
+adx30m_buy_strength  = TimeFrameExpand(adx30m_buy_strength_30m, in1Minute*30);
+adx30m_sell_strength = TimeFrameExpand(adx30m_sell_strength_30m, in1Minute*30);
+
+//ADX_acc30m_exp = TimeFrameExpand(ADX_acc30m, in1Minute*30);
+//dist = (ADX_acc30m_exp)*abs(C-Ref(C,-1));
+*/
 
 gap_down_sell = (Ref(C,-1) >= pDayL) AND (C <= pDayL);
-gap_up_buy  = (Ref(C,-1) <= pDayH) AND (C >= pDayH);
+gap_up_buy    = (Ref(C,-1) <= pDayH) AND (C >= pDayH);
 
 C_pdc = abs(C-pDayC)/pDayC*100;
+pDayMid = (pDayO+pDayH+pDayL+pDayC)/4;
 
-c_day_buy =  (Cross(C, pDayH) OR Cross(C, pDayC) OR gap_up_buy ) AND (C > O) AND (C >= dayO) AND (C > pDayMid);
-c_day_sell = (Cross(pDayL, C) OR Cross(pDayC, C) OR gap_down_sell) AND (C < O) AND (C <= dayO) AND (C < pDayMid);
+c_day_buy_strength1 =  Cross(C, pDayH) + Cross(C, pDayC) + gap_up_buy    + (C >= dayO) + (C > pDayMid);
+c_day_sell_strength1 = Cross(pDayL, C) + Cross(pDayC, C) + gap_down_sell + (C <= dayO) + (C < pDayMid);
 
-pdayc_buy_strength1 = IIf (abs(pDayC-pDayH) < abs (pDayC-pDayL), 1, 0);
+c_day_buy_strength2  =  (DayO > pDayMid)+2*(DayO > pDayH)+(DayO > pDayC)+(DayH > pDayH)+(C > dayO)+2*(C > pDayH) + 
+						(C > pDayMid) + (C_pdc < 1);
+c_day_sell_strength2 =  (DayO < pDayMid)+2*(DayO < pDayL)+(DayO < pDayC)+(DayL < pDayL)+(C < dayO)+(C < pDayL) + 
+						(C < pDayMid) + (C_pdc < 1);
+
+c_day_buy_strength = c_day_buy_strength1 + c_day_buy_strength2;
+c_day_sell_strength = c_day_sell_strength1 + c_day_sell_strength2;
+
+
+//Previous day strengths
+pdayc_buy_strength1 = IIf (abs(pDayC-pDayH) < abs (pDayC-pDayL), 1, 0); // if close is near high
 pdayc_sell_strength1 = IIf (abs(pDayC-pDayL) < abs (pDayC-pDayH), 1, 0);
 
-pdayc_buy_strength2 = 2*((pDayC_near_brn) AND (pDayC_brn>0));
-pdayc_sell_strength2 = 2*((pDayC_near_brn) AND (pDayC_brn<0));
+pdayc_buy_strength2 =  2*(pDayC_near_brn) + (pDayC_brn>0);
+pdayc_sell_strength2 = 2*(pDayC_near_brn) + (pDayC_brn<0);
 
-pdayc_buy_strength = pdayc_buy_strength1 + pdayc_buy_strength2;
-pdayc_sell_strength = pdayc_sell_strength1 + pdayc_sell_strength2;
+pdayc_buy_strength3 =  2*(pDayC > pDayO);
+pdayc_sell_strength3 = 2*(pDayC < pDayO);
+
+pdayc_buy_strength = pdayc_buy_strength1 + pdayc_buy_strength2 + pdayc_buy_strength3;
+pdayc_sell_strength = pdayc_sell_strength1 + pdayc_sell_strength2 + pdayc_sell_strength3;
+
+EMA_c15 = EMA (C,15);
+EMA_c25 = EMA (C,25);
+
+trend_buy_strength =   (C > EMA_C15) + (EMA_c15 > EMA_c25) + (EMA_c15 > Ref(EMA_c15,-1));
+trend_sell_strength =  (C < EMA_C15) + (EMA_c15 < EMA_c25) + (EMA_c15 < Ref(EMA_c15,-1));
+
+//from hourlybo
+C_1 = Ref (C, -1);
+H_1 = Ref (H, -1);
+L_1 = Ref (L, -1);
+hourly_bo_buy_strength 	= 	(C > HHV(C_1,12)) + (C > HHV (H_1,12)) + (ATR(1) > EMA(ATR(1),8));
+hourly_bo_sell_strength =  	(C < LLV(C_1,12)) + (C < LLV (L_1,12)) + (ATR(1) > EMA(ATR(1),8));
 
 
-c_day_buy_strength = pdayc_buy_strength + (DayO > pDayMid)+(DayO > pDayH)+(DayO > pDayC)+(DayH > pDayH)+(C > dayO)+(C > pDayH) + (C > pDayMid) + (C_pdc < 1);
-c_day_sell_strength = pdayc_sell_strength + (DayO < pDayMid)+(DayO < pDayL)+(DayO < pDayC)+(DayL < pDayL)+(C < dayO)+(C < pDayL) + (C < pDayMid) + (C_pdc < 1);
+//Location Strength and Weakness
+//If the green candle starts at the 5 bbb more likely it would go up.
+//If the red candle starts at the   5 bbt, more likely it would come down.
 
-EMA_buy_strength =  (EMA (C,15)  > EMA (C,25)) AND (EMA (C,15) > Ref(EMA (C,15),-1));
-EMA_sell_strength =  (EMA (C,15)  < EMA (C,25)) AND (EMA (C,15) < Ref(EMA (C,15),-1));
+TimeFrameSet( inHourly * 4); // switch now to 240 mins
+bbt_240m_comp = BBandTop( c, 15, 2 );
+bbb_240m_comp = BBandBot( c, 15, 2 );
+TimeFrameRestore(); // restore time frame to original
 
+TimeFrameSet( in1Minute * 30); // switch now to hourly
+bbt_30m_comp = BBandTop( c, 15, 2 );
+bbb_30m_comp = BBandBot( c, 15, 2 );
+TimeFrameRestore(); // restore time frame to original
 
-buy_strength_tmp = adx30m_buy_strength_exp5m + EMA_buy_strength + Cross(C, pDayH) + (C > O) + c_day_buy_strength;
-sell_strength_tmp = adx30m_sell_strength_exp5m + EMA_sell_strength + Cross(pDayL, C) + (C < O) + c_day_sell_strength;
+bbt_5m = BBandTop( c, 15, 2);
+bbb_5m = BBandBot( c, 15, 2);
+bbt_240m = TimeFrameExpand(bbt_240m_comp, inHourly*4);
+bbb_240m = TimeFrameExpand(bbb_240m_comp, inHourly*4);
+bbt_30m = TimeFrameExpand(bbt_30m_comp, in1Minute*30);
+bbb_30m = TimeFrameExpand(bbb_30m_comp, in1Minute*30);
+
+bb_5m_buyweakness  = (abs(C-bbt_5m)/C*100 < 0.5) + (abs(C-bbt_240m)/C*100 < 0.5) + (abs(C-bbt_30m)/C*100 < 0.5);
+bb_5m_sellweakness = (abs(C-bbb_5m)/C*100 < 0.5) + (abs(C-bbb_240m)/C*100 < 0.5) + (abs(C-bbb_30m)/C*100 < 0.5);
+
+buy_strength_tmp = pdayc_buy_strength + c_day_buy_strength + trend_buy_strength+hourly_bo_buy_strength - bb_5m_buyweakness; 
+sell_strength_tmp = pdayc_sell_strength + c_day_sell_strength + trend_sell_strength+hourly_bo_sell_strength - bb_5m_sellweakness;
+
+/*
+//Potential BO calculation near brn
+TimeFrameSet( in1Minute*240 ); // switch now to 240min
+consol_abv_brn_comp = (LLV(C,7) > brn );
+consol_blw_brn_comp = (HHV(C,7) < brn );
+LLV_array_comp = Ref(LLV(L,11),-1);
+HHV_array_comp = Ref(HHV(H,11),-1);
+TimeFrameRestore(); // restore time frame to original
+
+consol_abv_brn = TimeFrameExpand(consol_abv_brn_comp, in1Minute*240)*2;
+consol_blw_brn = TimeFrameExpand(consol_blw_brn_comp, in1Minute*240)*2;
+
+//How far from the nearest resistance
+LLV_array_exp_5m = TimeFrameExpand(LLV_array, in1Minute*240);
+HHV_array_exp_5m = TimeFrameExpand(HHV_array, in1Minute*240);
+
+dist_direction_up = C < HHV_array_exp_5m;
+dist_direction_up_calc = (HHV_array_exp_5m-C)/C*100;
+dist_strength_up1 = IIf(dist_direction_up == True, dist_direction_up_calc, -1);
+dist_res_strength_tmp = IIf(dist_strength_up1 > 0.5, 1, -1);
+dist_res_strength = IIf(dist_direction_up == True, dist_res_strength_tmp, 2);
+
+dist_direction_down = C > LLV_array_exp_5m;
+dist_direction_down_calc = (C-LLV_array_exp_5m)/C*100;
+dist_strength_down1 = IIf(dist_direction_down == True, dist_direction_down_calc, -1);
+dist_sup_strength_tmp = IIf(dist_strength_down1 > 0.5, 1, -1);
+dist_sup_strength = IIf(dist_direction_down==true, dist_sup_strength_tmp, 2);
+*/
 
 buy_strength1  = IIf(buy_strength_tmp  > sell_strength_tmp, buy_strength_tmp-sell_strength_tmp, 0);
 sell_strength1 = IIf(sell_strength_tmp > buy_strength_tmp, sell_strength_tmp-buy_strength_tmp, 0);
 
+//Qualifiers
 //First candle strength
-
 //candle close - how far from high
-candle_buy_strength =  (abs(C-H)/C)*100 < 0.1;
-candle_sell_strength = (abs(C-L)/C)*100 < 0.1;
+candle_buy_strength1 =  IIf((abs(C-H)/C)*100 < 0.1, 1, -1);
+candle_sell_strength1 = IIf((abs(C-L)/C)*100 < 0.1, 1, -1);
 
-buy_strength = IIf(buy_strength1  > sell_strength1,  buy_strength1 + candle_buy_strength, 0);
-sell_strength = IIf(sell_strength1  > buy_strength1, sell_strength1 + candle_sell_strength, 0);
+candle_body = (abs(C-O)/((H-L)+0.01)*100) < 2;
+candle_buy_strength2 =  IIF ((C>O) AND (candle_body), 1, -1);
+candle_sell_strength2 =  IIf((C<O) AND (candle_body), 1, -1);
 
+candle_buy_strength = candle_buy_strength1 + candle_buy_strength2;
+candle_sell_strength = candle_sell_strength1 + candle_sell_strength2;
 
-Filter = (C_near_brn OR C_near_nbrn OR C_near_n1brn) AND ((c_day_buy AND buy_strength >6) OR  (c_day_sell AND sell_strength >6) ) ;
+/*
+//How far from a resistance level
+buy_strength2 = IIf(buy_strength1  > sell_strength1,  buy_strength1 + dist_res_strength, 0);
+sell_strength2 = IIf(sell_strength1  > buy_strength1, sell_strength1 + dist_sup_strength, 0);
+*/
+buy_strength2 = buy_strength1;
+sell_strength2 = sell_strength1;
+
+buy_strength = IIf(buy_strength2  > sell_strength2,  buy_strength2 + candle_buy_strength, 0);
+sell_strength = IIf(sell_strength2  > buy_strength2,  sell_strength2 + candle_sell_strength, 0);
+
+buy_strength  = round (buy_strength);
+sell_strength = round (Sell_strength);
+Filter = (buy_strength >8) OR  (sell_strength >8);
 
 SetOption("NoDefaultColumns", True );
 AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
@@ -99,8 +260,8 @@ AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault,
 AddColumn(buy_strength, "buy_s", 1.0);
 AddColumn(sell_strength, "sell_s", 1.0);
 AddColumn(C, "CMP", 1.2);
-AddColumn(C_pdc, "%change", 1.2);
+AddColumn((C-pDayC)/pDayC*100, "%change", 1.2);
 
-AlertIf(Filter, "","nbrn "+NumToStr(C)+" "+NumToStr(buy_strength)+" "+NumToStr(sell_strength));
+AlertIf(Filter, "","nbrn "+NumToStr(C,8.2,True,True)+" "+NumToStr(buy_strength,8.0,True,True)+" "+NumToStr(sell_strength,8.0,True,True));
 
 _SECTION_END();
