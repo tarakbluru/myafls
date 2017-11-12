@@ -81,7 +81,11 @@ consol_strength_t = (LLV_bars == HHV_bars) + (abs(LLV_bars-HHV_bars) < 2);
 consol_strength = consol_strength_t + Ref(consol_strength_t, -1) + Ref(consol_strength_t,-2); 
 consolidated = (consolidated_low AND consolidated_high);
 
-Filter = (Ref(consolidated,0)) AND (consol_strength >2) AND (((buyStrength > 2) AND (SellStrength < 1 )) OR ((buyStrength < 1) AND (SellStrength > 2)));
+//location of consolidation 
+consol_locn = (abs (C - pDayC)/pDayC*100) > 0.25;
+//consol_locn = 1;
+
+Filter = (consol_locn) AND (Ref(consolidated,0)) AND (consol_strength >2) AND (((buyStrength > 2) AND (SellStrength < 1 )) OR ((buyStrength < 1) AND (SellStrength > 2)));
 
 
 AlertIf(Filter, "","",0,1);
