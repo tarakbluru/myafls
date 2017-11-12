@@ -93,7 +93,13 @@ sell_strength = IIf(sell_strength1  > buy_strength1, sell_strength1 + candle_sel
 
 Filter = (C_near_brn OR C_near_nbrn OR C_near_n1brn) AND ((c_day_buy AND buy_strength >6) OR  (c_day_sell AND sell_strength >6) ) ;
 */
-Filter = (C_near_brn OR C_near_nbrn OR C_near_n1brn) AND (C<10000);
+
+// Close - near high or low
+
+near_high =  (H-C)/C*100;
+near_low =   (C-L)/C*100;
+
+Filter = (C_near_brn OR C_near_nbrn OR C_near_n1brn) AND (C<10000) AND ((near_high <=0.45) OR (near_low <= 0.45)) ;
 
 SetOption("NoDefaultColumns", True );
 AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
@@ -103,9 +109,77 @@ AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault,
 //AddColumn(C_near_n1brn, "n1brn", 1.2);
 //AddColumn(buy_strength, "buy_s", 1.0);
 //AddColumn(sell_strength, "sell_s", 1.0);
-AddColumn(C, "CMP", 1.2);
+AddColumn(C, "C", 1.2);
+AddColumn(H, "H", 1.2);
+AddColumn(L, "L", 1.2);
+AddColumn(near_high, "near_high", 1.2);
+AddColumn(near_low, "near_low", 1.2);
+
+/*
+fsrcname = "F:\\Tarak\\Dropbox\\Market\\lists\\urd_2017.txt";
+fopname = "C:\\Users\\Tarak\\Desktop\\tomorrow.tls";
+
+//if (LastValue(Filter))
+{
+	fh  = fopen( fsrcname, "r");
+	foh = fopen( fopname,  "a");
+
+
+	if( fh && foh) 
+	{ 
+		while( ! feof( fh ) ) 
+		{ 
+			Line  = fgets (fh);
+			str1  = StrExtract(Line, 0, ' ');
+			cmp_str = "";
+			found = False;
+
+			fputs (Line + "\n", foh);
+			fh_copy = fopen( fsrcname, "r");
+
+			if (fh_copy )
+			{
+				while ( !feof(fh_copy )) 
+				{
+					Line1  = fgets (fh_copy);
+					cmp_str = Name ()+"_I";
+					str2  = StrExtract(Line1, 0, ' ');
+					if (StrMatch (Name (), "BAJAJ-AUTO"))
+					{
+						cmp_str = "BAJAJ_AUTO_I";
+					}
+					if (StrMatch (Name (), "M&M"))
+					{
+						cmp_str = "M_M_I";
+					}
+					if (StrMatch (Name (), "M&MFIN"))
+					{
+						cmp_str = "M_MFIN_I";
+					}
+					if (StrMatch (Name (), "MCDOWELL-N"))
+					{
+						cmp_str = "MCDOWELL_N_I";
+					}
+					if (StrMatch (cmp_str, str2) )
+					{
+						found = True;
+						break;
+					}
+				}
+				if (LastValue(Filter) && found == False) {
+					fputs (cmp_str + "\n", foh);
+				}
+			}
+			
+			fclose(fh_copy);
+		}
+	}
+
+	fclose (fh);
+	fclose (foh);
+}
 //AddColumn(C_pdc, "%change", 1.2);
 
 //AlertIf(Filter, "","nbrn "+NumToStr(C)+" "+NumToStr(buy_strength)+" "+NumToStr(sell_strength));
-
+*/
 _SECTION_END();
