@@ -1,0 +1,103 @@
+_SECTION_BEGIN("price_action_nearbrn");
+
+ticker = Name ();
+curint = Interval(2);
+
+bbt_sd15 = BBandTop( C, 15, 2 );
+bbb_sd15 = BBandBot( C, 15, 2 );
+
+C_nearbbb = abs(C-bbb_sd15)/C*100 < 0.25;
+C_nearbbt = abs(C-bbt_sd15)/C*100 < 0.25;
+
+L_1 = Ref(L,-1);
+H_1 = Ref(H,-1);
+
+RL = LLV( L_1, 15);
+RH = HHV( H_1, 15);
+
+C_near_RL = abs(C-RL)/C*100 < 0.25;
+C_near_RH = abs(C-RH)/C*100 < 0.25;
+
+peaks_c_1 = Peak(C, 0.6,1);
+peaks_c_2 = Peak(C, 0.6,2);
+
+troughs_c_1 = Trough(C, 0.6,1);
+troughs_c_2 = Trough(C, 0.6,2);
+
+//4hr RL/RH
+TimeFrameSet( in1Minute*240 ); // switch now to Daily
+bbt_240m_sd15_comp = BBandTop( C, 15, 2 );
+bbb_240m_sd15_comp = BBandBot( C, 15, 2 );
+doji_240m_comp = (O == C);
+NearDoji_240m_comp = (abs(O-C)<= ((H-L)*0.2));
+H_1 = Ref(H,-1);
+L_1 = Ref(L,-1);
+m_res_comp = HHV(H_1, 30);
+m_sup_comp = LLV(L_1, 30);
+w_res_comp = HHV(H_1, 10);
+w_sup_comp = LLV(L_1, 10);
+TimeFrameRestore(); // restore time frame to original
+
+m_res = TimeFrameExpand(m_res_comp, in1Minute*240);
+m_sup = TimeFrameExpand(m_sup_comp, in1Minute*240);
+w_res = TimeFrameExpand(w_res_comp, in1Minute*240);
+w_sup = TimeFrameExpand(w_sup_comp, in1Minute*240);
+
+bbt_240m_sd15 = TimeFrameExpand(bbt_240m_sd15_comp, in1Minute*240);
+bbb_240m_sd15 = TimeFrameExpand(bbb_240m_sd15_comp, in1Minute*240);
+
+
+C_near_bbb_240m = abs(C-bbb_240m_sd15)/C*100 < 0.25;
+C_near_bbt_240m = abs(C-bbt_240m_sd15)/C*100 < 0.25;
+
+C_nearbbb = abs(C-bbb_sd15)/C*100 < 0.25;
+C_nearbbt = abs(C-bbt_sd15)/C*100 < 0.25;
+
+C_near_m_res = abs(C-m_res)/C*100 < 0.25;
+C_near_w_res = abs(C-w_res)/C*100 < 0.25;
+
+C_near_m_sup = abs(C-m_sup)/C*100 < 0.25;
+C_near_w_sup = abs(C-w_sup)/C*100 < 0.25;
+
+
+//Candle type at the interested area.
+doji = (O == C);
+NearDoji = (abs(O-C)<= ((H-L)*0.1));
+
+doji_240m = TimeFrameExpand(doji_240m_comp, in1Minute*240);
+NearDoji_240m = TimeFrameExpand(NearDoji_240m_comp, in1Minute*240);
+
+Buy_strength = 	2*(peaks_c_1 > peaks_c_2) + (troughs_c_1 > troughs_c_2) + 
+				(C_near_RL) + (C_nearbbb) + 
+				C_near_m_sup + C_near_w_sup + 
+				 doji_240m + NearDoji_240m +
+				C_near_bbb_240m;
+Sell_strength = 2* (troughs_c_1 < troughs_c_2) + (peaks_c_1 < peaks_c_2) + 
+				(C_near_RH) + (C_nearbbt) + 
+				C_near_m_res + C_near_w_res + 
+				doji_240m + NearDoji_240m +
+				C_near_bbt_240m;
+
+candle_sell_strength = IIf((Sell_strength OR Ref (Sell_strength, -1)) AND (doji OR NearDoji OR doji_240m OR NearDoji_240m), 2, 0);
+candle_Buy_strength  = IIf((Buy_strength  OR Ref (Buy_strength,  -1)) AND (doji OR NearDoji OR doji_240m OR NearDoji_240m), 2, 0);
+
+Buy_strength  =  Buy_strength + candle_Buy_strength;
+Sell_strength =  Sell_strength + candle_Sell_strength;
+
+Buy  = (Buy_strength > 3);
+Sell = (Sell_strength > 3);
+
+Filter =  (Buy OR Sell);
+
+SetOption("NoDefaultColumns", True );
+AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
+//AddColumn(C_near_brn, "brn", 1.2);
+//AddColumn(C_near_nbrn, "nbrn", 1.2);
+//AddColumn(C_near_n1brn, "n1brn", 1.2);
+AddColumn(Buy_strength, "buy_s", 1.0);
+AddColumn(Sell_strength, "sell_s", 1.0);
+AddColumn(C, "CMP", 1.2);
+//AddColumn((C-pDayC)/pDayC*100, "%change", 1.2);
+
+_SECTION_END();

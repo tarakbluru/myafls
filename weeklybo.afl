@@ -1,0 +1,49 @@
+C_1 = Ref (C,-1);
+C_2 = Ref (C,-2);
+C_3 = Ref (C,-3);
+C_4 = Ref (C,-4);
+C_5 = Ref (C,-5);
+C_6 = Ref (C,-6);
+C_7 = Ref (C,-7);
+C_8 = Ref (C,-8);
+C_9 = Ref (C,-9);
+C_10 = Ref (C,-10);
+C_11 = Ref (C,-11);
+C_12 = Ref (C,-12);
+
+
+Buy = 	(C > C_1) AND (C > C_2) AND (C > C_3) AND (C > C_4) AND 
+		(C > C_5) AND (C > C_6) AND (C > C_7) AND (C > C_8) AND 
+		(C > C_9) AND (C > C_10) AND (C > C_11) AND (C > C_12) AND 
+		(ATR(1) > 2*EMA (ATR(14),1)) AND (C>O) AND (V > EMA(V,14)) AND (C>10);
+
+Sell = 	(C < C_1) AND (C < C_2) AND (C < C_3) AND (C < C_4) AND 
+		(C < C_5) AND (C < C_6) AND (C < C_7) AND (C < C_8) AND 
+		(C < C_9) AND (C < C_10) AND (C < C_11) AND (C < C_12) AND 
+		(ATR(1) < EMA (ATR(1),14)) AND (C>O) AND (V > EMA (V,14)) AND (C>10);
+		
+//Check for consolidation
+HHV_bars = HHVBars (H,5);
+LLV_bars = LLVBars (L,5);
+
+Low_5 = LLV (L, 5); High_5 = HHV (H, 5);
+Low_4_t = LLV (L, 4); High_4_t = HHV (H, 4);
+Low_3_t = LLV (L, 3); High_3_t = HHV (H, 3);
+Low_2_t = LLV (L, 2); High_2_t = HHV (H, 2);
+
+Low_4  = Ref (Low_4_t, -1); High_4  = Ref (High_4_t, -1);
+Low_3  = Ref (Low_3_t, -2); High_3  = Ref (High_3_t, -2);
+Low_2  = Ref (Low_2_t, -3); High_2  = Ref (High_2_t, -3);
+
+consolidated_low = (IIf ((Low_5 == Low_4),1, 0)) AND (IIf ((Low_5 == Low_3), 1, 0)) AND (IIf ((Low_5 == Low_2), 1, 0));
+consolidated_high = (IIf ((High_5 == High_4),1, 0)) AND (IIf ((High_5 == High_3), 1, 0)) AND (IIf ((High_5 == High_2), 1, 0));
+
+consolidated = (consolidated_low AND consolidated_high);
+
+consolidated_1 = Ref(consolidated, -1);
+consolidated_2 = Ref(consolidated, -2);
+consolidated_3 = Ref(consolidated, -3);
+consol_strength = consolidated + consolidated_1 + consolidated_2 + consolidated_3;
+
+Filter = (consol_strength > 2) AND (Buy OR Sell);
+
