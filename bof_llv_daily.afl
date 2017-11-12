@@ -1,0 +1,78 @@
+_SECTION_BEGIN("bof_llv_daily");
+
+ticker = Name ();
+curint = Interval(2);
+
+RL_d = LLV(Ref(C,-1), 24);
+bbt_d = BBandTop( C, 15, 2 );
+bbb_d = BBandBot( C, 15, 2 );
+C_dist_bbb_d = abs (C - bbb_d)/C * 100;
+C_near_bbb_d = C_dist_bbb_d < 5;
+
+TimeFrameSet( inWeekly ); // switch now to Weekly
+RL_w_comp = LLV(Ref(C,-1), 24);
+bbt_w_comp = BBandTop( C, 15, 2 );
+bbb_w_comp = BBandBot( C, 15, 2 );
+C_dist_bbb_w = abs (C - bbb_w_comp)/C * 100;
+C_near_bbb_w_comp = IIf (C_dist_bbb_w < 5, 2, 0);
+TimeFrameRestore(); // restore time frame to original
+
+TimeFrameSet( inMonthly ); // switch now to Weekly
+RL_m_comp = LLV(Ref(C,-1), 24);
+bbt_m_comp = BBandTop( C, 15, 2 );
+bbb_m_comp = BBandBot( C, 15, 2 );
+C_dist_bbb_m = abs (C - bbb_m_comp)/C * 100;
+C_near_bbb_m_comp = IIf (C_dist_bbb_m < 5, 3, 0);
+TimeFrameRestore(); // restore time frame to original
+
+C_near_bbb_w = TimeFrameExpand(C_near_bbb_w_comp, inWeekly);
+C_near_bbb_m = TimeFrameExpand(C_near_bbb_m_comp, inMonthly);
+RL_w = TimeFrameExpand(RL_w_comp, inWeekly);
+RL_m = TimeFrameExpand(RL_m_comp, inMonthly);
+
+dist_rl_d = abs (C-RL_d)/C * 100;
+dist_rl_w = abs (C-RL_w)/C * 100;
+
+dist_rl_d_w = abs (rl_d - rl_w)/rl_d * 100;
+
+//NEAR BRN calculation
+lastC = round (Ref(C, 0));
+brn = int ((lastC+51)/100)*100;
+rn = IIf(brn - 50 > 0, brn-50, 0);
+ 
+nbrn = brn+100;
+nrn = nbrn - 50;
+
+n1brn = IIf(brn-100 > 0, brn-100, 0);
+n1rn = IIf(n1brn-50 > 0, n1brn-50, 0);
+
+C_brn =  ((abs  (lastC - brn)/lastC)*100);
+C_nbrn = ((abs  (lastC - nbrn)/lastC)*100);
+C_n1brn = ((abs  (lastC - n1brn)/lastC)*100);
+
+C_near_brn = IIf (C_brn < 1, 2, 0);
+C_near_nbrn = IIf (C_nbrn < 1, 2, 0);
+C_near_n1brn = IIf (C_n1brn < 1, 2, 0);
+
+C_rn =  ((abs  (lastC - rn)/lastC)*100);
+C_nrn = ((abs  (lastC - nrn)/lastC)*100);
+C_n1rn = ((abs  (lastC - n1rn)/lastC)*100);
+
+C_near_rn = IIf (C_rn < 1, 1, 0);
+C_near_nrn = IIf (C_nrn < 1, 1, 0);
+C_near_n1rn = IIf (C_n1rn < 1, 1, 0);
+
+Buy_strength  = C_near_rn+C_near_nrn+C_near_n1rn +
+				C_near_brn+C_near_nbrn+C_near_n1brn +
+				((dist_rl_d < 5) AND (dist_rl_w < 5))+ 
+				C_near_bbb_w + C_near_bbb_m; 
+
+Filter = (dist_rl_d_w < 5) AND (C>RL_d) AND (Buy_strength > 3);
+
+SetOption("NoDefaultColumns", True );
+AddTextColumn( Name(),"Symbol",1.0, colorDefault,colorDefault, 80);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );
+AddColumn(C, "C", 1.2);
+AddColumn(Buy_strength, "B_S", 1.2);
+
+_SECTION_END();
