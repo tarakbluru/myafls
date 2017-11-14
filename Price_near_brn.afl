@@ -76,8 +76,8 @@ Sell_strength2 =  IIf ((chk_cond_2) AND (C<=O) AND (DayO_near_pDayL<1) AND (C < 
 //Contra indicator
 //first candle opens below pdl but immediately comes into previous day range
 
-Buy_strength3  =  IIf ((timeOK) AND Ref(Sell_strength1,-1) AND  (C > pDayL), 5, 0);
-Sell_strength3 =  IIf ((timeOK) AND Ref(Buy_strength1, -1) AND  (C < pDayH), 5, 0);
+Buy_strength3  =  IIf ((timeOK) AND Ref(Sell_strength1,-1) AND  Cross(C,pDayL), 5, 0);
+Sell_strength3 =  IIf ((timeOK) AND Ref(Buy_strength1, -1) AND  Cross(pDayH,C), 5, 0);
 
 f1_buy_strength = Buy_strength1 + Buy_strength2 + Buy_strength3;
 f1_sell_strength = Sell_strength1 + Sell_strength2 + Sell_strength3;
@@ -90,13 +90,13 @@ Sell_strength4 =  IIf((f1_buy_strength < f1_Sell_strength), C_near_brn_score+C_n
 tw = IIf ((C>O), H-C, H-O);
 bw = IIf (C<O, C-L, O-L);
 
-Buy_weakness1 = IIf(C>O, tw/(H-L+0.001)*2, 0);
-sell_weakness1 = IIf(C<O, bw/(H-L+0.001)*2, 0);
+Buy_weakness1 = IIf(C>O, tw/(H-L+0.001)*4, 0);
+sell_weakness1 = IIf(C<O, bw/(H-L+0.001)*4, 0);
 
 Buy_strength = round(f1_buy_strength + Buy_strength4 - Buy_weakness1);
 Sell_strength = round(f1_sell_strength + Sell_strength4 - sell_weakness1);
 
-Filter = (timeOK) AND ((Buy_strength >3) OR  (Sell_strength >3));
+Filter = (timeOK) AND ((Buy_strength >4) OR  (Sell_strength >4));
 
 SetOption("NoDefaultColumns", True );
 AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
