@@ -1,0 +1,72 @@
+_SECTION_BEGIN("search_Pin_bars");
+
+ticker = Name ();
+curint = Interval(2);
+
+PDH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
+PDL = TimeFrameGetPrice("L", inDaily, -1);	//	low
+PDC = TimeFrameGetPrice("C", inDaily, -1);	//	low
+
+
+C_1=Ref(C, 0);
+bbt_sd15 = Ref(BBandTop( C_1, 15, 2 ), -1);
+bbb_sd15 = Ref(BBandBot( C_1, 15, 2 ), -1);
+
+C_nearbbb = abs(C_1-bbb_sd15)/C_1*100 < 0.5;
+C_nearbbt = abs(C_1-bbt_sd15)/C_1*100 < 0.5;
+
+C_nearPDH = abs(C_1-PDH)/C_1*100 ;
+C_nearPDL = abs(C_1-PDL)/C_1*100 ;
+C_nearPDC = abs(C_1-PDC)/C_1*100 ;
+
+C_nearPDH_PDL_PDC = (C_nearPDH<0.5) OR (C_nearPDL<0.5) OR (C_nearPDC < 0.5);
+
+candlebody = abs(C-O);
+tw = IIf (C>O, H-C, H-O);
+bw = IIf (C>O, O-L, C-L);
+
+cb_ratio_range = candlebody/(H-L+0.001)*100;
+pinbar = IIf(cb_ratio_range < 30, 1, 0) AND ((tw < (0.30*(tw+bw))) OR (bw < (0.30*(tw+bw))));
+candle_wicks_range = abs(tw-bw)/(tw+bw)*100; 
+top_type_candle = IIf ((cb_ratio_range < 15) AND (candle_wicks_range < 10), True, False);
+
+L_1 = Ref (L,-1);
+L_2 = Ref (L,-2);
+
+dist_L_L1 = abs (L-L_1)/L*100;
+dist_L_L2 = abs (L-L_2)/L*100;
+dist_L1_L2 = abs (L_1-L_2)/L_1*100;
+
+cons_lows = IIf((dist_L_L1 < 0.5) OR (dist_L_L2 <0.5) OR (dist_L1_L2<0.5), 1, 0);
+//cons_lows = 1;
+Buy = ((pinbar) OR (top_type_candle)) AND (cons_lows) AND (C_nearbbb) AND (C_nearPDH_PDL_PDC);
+
+
+H_1 = Ref (H,-1);
+H_2 = Ref (H,-2);
+
+dist_H_H1 = abs (H-H_1)/H*100;
+dist_H_H2 = abs (H-H_2)/H*100;
+dist_H1_H2 = abs (H_1-H_2)/H_1*100;
+
+cons_highs = IIf((dist_H_H1 < 0.5) OR (dist_H_H2 <0.5) OR (dist_H1_H2<0.5), 1, 0);
+//cons_highs = 1;
+Sell = ((pinbar) OR (top_type_candle)) AND (cons_highs) AND (C_nearbbt) AND (C_nearPDH_PDL_PDC);
+
+Filter = (Buy) OR (Sell);
+
+SetOption("NoDefaultColumns", True );
+AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
+//AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
+//AddColumn(C_near_brn, "brn", 1.2);
+//AddColumn(C_near_nbrn, "nbrn", 1.2);
+//AddColumn(C_near_n1brn, "n1brn", 1.2);
+//AddColumn(buy_strength, "b", 1.0);
+//AddColumn(sell_strength, "s", 1.0);
+AddColumn(C, "CMP", 1.2);
+//AddColumn((C-pDayC)/pDayC*100, "%change", 1.2);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
+
+//AlertIf(Filter, "","nbrn "+NumToStr(C,8.2,True,True)+" "+NumToStr(buy_strength,8.0,True,True)+" "+NumToStr(sell_strength,8.0,True,True));
+
+_SECTION_END();
