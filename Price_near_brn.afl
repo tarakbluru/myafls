@@ -6,7 +6,17 @@ curint = Interval(2);
 tn = TimeNum();
 startTime = 91500; // start in HHMMSS format
 endTime = 92500;  // end in HHMMSS format
+
+fc_startTime = 91500; // start in HHMMSS format
+fc_endTime = 92000;  // end in HHMMSS format
+
+sc_startTime = 92000; // start in HHMMSS format
+sc_endTime = 92500;  // end in HHMMSS format
+
 timeOK = tn > startTime AND tn <= endTime;
+
+fc_timeOK = tn > fc_startTime AND tn <= fc_endTime;
+sc_timeOK = tn > sc_startTime AND tn <= sc_endTime;
 
 
 //Get Previous Day data
@@ -60,7 +70,27 @@ pDayC_brn =  ((pDayC - brn)/(pDayC))*100;
 pDayC_nbrn = ((pDayC - nbrn)/(pDayC))*100;
 pDayC_n1brn = ((pDayC - n1brn)/(pDayC))*100;  
 
-pDayC_near_brn = IIf (abs(pDayC_brn) < 2.0, 2, 0);
+//previous candle is doji or near doji, do not consider it for strength or weakness calculation
+
+pday_candle_body = (abs(pDayC-pDayO)/(pDayH-pDayL)*100);
+pday_candle_tw = IIf(pDayC > pDayO, pDayH-pDayC, pDayH-pDayO);
+pday_candle_bw = IIf(pDayC > pDayO, pDayO-PDayL, pDayC-pDayL);
+pday_candle_wicks_range = abs(pday_candle_tw-pday_candle_bw)/(pday_candle_tw+pday_candle_bw)*100; 
+pday_top_type_candle = IIf ((pday_candle_body < 15) AND (pday_candle_wicks_range < 10), True, False);
+
+pDayC_pDayH =  IIf(pDayC > pDayO, ((pDayH - pDayC)/(pDayC))*100, 10); //10 - to make sure it is more than 0.5
+pDayC_pDayL =  IIf(pDayC < pDayO, ((pDayC - pDayL)/(pDayC))*100, 10);
+
+pDayC_near_brn = IIf (abs(pDayC_brn) < 2.0, 1, 0);
+pDayC_near_PDayL = IIf (abs(pDayC_pDayL) < 0.5, 1, 0);
+pDayC_near_PDayH = IIf (abs(pDayC_pDayH) < 0.5, 1, 0);
+
+Buy_strength0  =  IIf(pday_top_type_candle == False, IIf (pDayC > pDayO AND pDayC_near_PDayH, 1, 0) + pDayC_near_brn + pDayC_near_PDayH, 0);
+Sell_strength0 =  IIf(pday_top_type_candle == False, IIf (pDayC < pDayO AND pDayC_near_PDayL, 1, 0) + pDayC_near_brn + pDayC_near_PDayL, 0); 
+
+//weaknessmultipler for later use
+weakness_buy_multiplier = IIf(Buy_strength0 > Sell_strength0, 2/(Buy_strength0+0.01),  0);
+weakness_sell_multiplier = IIf(Sell_strength0 > Buy_strength0, 2/(Sell_strength0+0.01),  0);
 
 Buy_strength1  =  IIf ((C>=O) AND (DayO > pDayH) AND (C > pDayH), 5, 0);
 Sell_strength1 =  IIf ((C<=O) AND (DayO < pDayL) AND (C < pDayL), 5, 0);
@@ -76,11 +106,17 @@ Sell_strength2 =  IIf ((chk_cond_2) AND (C<=O) AND (DayO_near_pDayL<1) AND (C < 
 //Contra indicator
 //first candle opens below pdl but immediately comes into previous day range
 
-Buy_strength3  =  IIf ((timeOK) AND Ref(Sell_strength1,-1) AND  (C > pDayL), 5, 0);
-Sell_strength3 =  IIf ((timeOK) AND Ref(Buy_strength1, -1) AND  (C < pDayH), 5, 0);
+Buy_strength3_0  =  IIf ((sc_timeOK) AND Ref(Sell_strength1,-1) AND  Cross(C,pDayL), 5, 0);
+Sell_strength3_0 =  IIf ((sc_timeOK) AND Ref(Buy_strength1, -1) AND  Cross(pDayH,C), 5, 0);
 
-f1_buy_strength = Buy_strength1 + Buy_strength2 + Buy_strength3;
-f1_sell_strength = Sell_strength1 + Sell_strength2 + Sell_strength3;
+Buy_strength3_1  =  IIf ((timeOK) AND  Cross(C,pDayL), 5, 0);
+Sell_strength3_1 =  IIf ((timeOK) AND  Cross(pDayH,C), 5, 0);
+
+Buy_strength3 = Buy_strength3_0 + Buy_strength3_1;
+Sell_strength3 = Sell_strength3_0 +  Sell_strength3_1;
+
+f1_buy_strength = Buy_strength0+Buy_strength1 + Buy_strength2 + Buy_strength3;
+f1_sell_strength = Sell_strength0+Sell_strength1 + Sell_strength2 + Sell_strength3;
 
 Buy_strength4  =  IIf((f1_buy_strength > f1_Sell_strength), C_near_brn_score+C_near_rn_score, 0);
 Sell_strength4 =  IIf((f1_buy_strength < f1_Sell_strength), C_near_brn_score+C_near_rn_score, 0);
@@ -90,11 +126,14 @@ Sell_strength4 =  IIf((f1_buy_strength < f1_Sell_strength), C_near_brn_score+C_n
 tw = IIf ((C>O), H-C, H-O);
 bw = IIf (C<O, C-L, O-L);
 
-Buy_weakness1 = IIf(C>O, tw/(H-L+0.001)*2, 0);
-sell_weakness1 = IIf(C<O, bw/(H-L+0.001)*2, 0);
+Buy_weakness1 = IIf(C>O, tw/(H-L+0.001)*weakness_buy_multiplier, 0);
+sell_weakness1 = IIf(C<O, bw/(H-L+0.001)*weakness_sell_multiplier, 0);
 
-Buy_strength = round(f1_buy_strength + Buy_strength4 - Buy_weakness1);
-Sell_strength = round(f1_sell_strength + Sell_strength4 - sell_weakness1);
+Buy_strength_tmp = round(f1_buy_strength + Buy_strength4 - Buy_weakness1);
+Sell_strength_tmp = round(f1_sell_strength + Sell_strength4 - sell_weakness1);
+
+Buy_strength = IIF(Buy_strength_tmp > Sell_strength_tmp, Buy_strength_tmp-Sell_strength_tmp, 0);
+Sell_strength = IIF(Buy_strength_tmp < Sell_strength_tmp, Sell_strength_tmp-Buy_strength_tmp, 0);
 
 Filter = (timeOK) AND ((Buy_strength >3) OR  (Sell_strength >3));
 
