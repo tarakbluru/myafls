@@ -3,7 +3,16 @@ _SECTION_BEGIN("search_Pin_bars");
 ticker = Name ();
 curint = Interval(2);
 
-TimeFrameSet( inMonthly ); // switch now to Monthly
+HTF1 = in1Minute*240;
+HTF2 = in1Minute*30;
+TTF = in1Minute*5;
+
+//Get Previous Day data
+pDayH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
+pDayL = TimeFrameGetPrice("L", inDaily, -1);	// yesterdays low
+pDayC = TimeFrameGetPrice("C", inDaily, -1);	// yesterdays close
+
+TimeFrameSet( HTF1 ); // switch now to Monthly
 candlebody_m = abs(C-O);
 candlerange_m = H-L;
 tw_m = IIf (C>O, H-C, H-O);
@@ -12,21 +21,24 @@ cb_ratio_range = candlebody_m/(candlerange_m+0.001)*100;
 pinbar_m = IIf((cb_ratio_range < 20) AND (tw_m < (0.30*(tw_m+bw_m))), 1, 0);
 cwr_m = (bw_m-tw_m)/(tw_m+bw_m)*100; 
 top_type_candle_m = IIf ((cb_ratio_range < 15) AND (cwr_m > 70), True, False);
-zigc_m = Zig(C, 5);
+zigc_m = Zig(C, 2.9);
 troughs_m=Trough(zigc_m,1,1);
-C_near_troughs_m = (abs(C-troughs_m)/C*100) < 2;
+C_near_troughs_m = (abs(C-troughs_m)/C*100) < 0.2;
 LLV_m = Ref(LLV(L,6),-1);
-L_near_llvm = (abs(L-LLV_m)/L*100) < 20;
+L_near_llvm = (abs(L-LLV_m)/L*100) < 0.2;
 bbb_m_comp = BBandBot( C, 15, 2 );
 L_dist_bbb_m = abs (L - Ref(bbb_m_comp,-1))/L * 100;
-L_near_bbb_m_comp = L_dist_bbb_m < 25;
+L_near_bbb_m_comp = L_dist_bbb_m < 0.25;
 pinbar_m_1 = Ref(pinbar_m, 0);
-pinbar_near_low_m_comp = (L_near_bbb_m_comp)AND(L_near_llvm) AND (Ref(pinbar_m, -1) OR (C_near_troughs_m) OR Ref (C_near_troughs_m, -1)) AND (pinbar_m_1);
+pinbar_near_low_m_comp = (L_near_bbb_m_comp) AND 
+						 (Ref(pinbar_m, -1)) AND 
+						 ((C_near_troughs_m) OR Ref (C_near_troughs_m, -1)) AND 
+						 (pinbar_m_1);
 TimeFrameRestore(); // restore time frame to original
 
-pinbar_near_low_m = TimeFrameExpand(pinbar_near_low_m_comp,inMonthly);
+pinbar_near_low_m = TimeFrameExpand(pinbar_near_low_m_comp,HTF1);
 
-TimeFrameSet( inWeekly ); // switch now to Weekly
+TimeFrameSet( HTF2 ); // switch now to Weekly
 candlebody_w = abs(C-O);
 tw_w = IIf (C>O, H-C, H-O);
 bw_w = IIf (C>O, O-L, C-L);
@@ -34,36 +46,36 @@ cb_ratio_range = candlebody_w/(H-L+0.001)*100;
 pinbar_w = IIf((cb_ratio_range < 30) AND (tw_w < (0.30*(tw_w+bw_w))), 1, 0);
 cwr_w = (bw_w-tw_w)/(tw_w+bw_w+0.001)*100; 
 top_type_candle_w = IIf ((cb_ratio_range < 15) AND (cwr_w > 70), True, False);
-zigc_w = Zig(C, 5);
+zigc_w = Zig(C, 1.8);
 troughs_w=Trough(zigc_w,1,1);
-C_near_troughs_w = (abs(C-troughs_w)/C*100) < 2;
-LLV_w = Ref(LLV(L,6),-1);
-L_near_llvw = (abs(L-LLV_w)/L*100) < 10;
+C_near_troughs_w = (abs(C-troughs_w)/C*100) < 0.25;
+//LLV_w = Ref(LLV(L,6),-1);
+//L_near_llvw = (abs(L-LLV_w)/L*100) < 0.25;
 bbb_w_comp = BBandBot( C, 15, 2 );
 L_dist_bbb_w = abs (L - Ref(bbb_w_comp,-1))/L * 100;
-L_near_bbb_w_comp = L_dist_bbb_w < 25;
+L_near_bbb_w_comp = L_dist_bbb_w < 0.25;
 pinbar_w_1 = Ref(pinbar_w, 0);
-pinbar_near_low_w_comp = (L_near_bbb_w_comp) AND (L_near_llvw) AND (Ref(pinbar_w, -1) OR (C_near_troughs_w) OR Ref (C_near_troughs_w, -1)) AND (pinbar_w_1);
+pinbar_near_low_w_comp = (L_near_bbb_w_comp) AND ((C_near_troughs_w) OR Ref (C_near_troughs_w, -1)) AND (pinbar_w_1);
 TimeFrameRestore(); // restore time frame to original
 
-pinbar_near_low_w = TimeFrameExpand(pinbar_near_low_w_comp,inWeekly);
+pinbar_near_low_w = TimeFrameExpand(pinbar_near_low_w_comp,HTF2);
 
-TimeFrameSet( inDaily ); // switch now to Weekly
+TimeFrameSet( TTF ); // switch now to Weekly
 candlebody_d = abs(C-O);
 tw_d = IIf (C>O, H-C, H-O);
 bw_d = IIf (C>O, O-L, C-L);
 cb_ratio_range = candlebody_d/(H-L+0.001)*100;
-pinbar_d = IIf((cb_ratio_range < 25) AND (tw_d < (0.30*(tw_d+bw_d))), 1, 0);
+pinbar_d = IIf((cb_ratio_range < 32) AND (tw_d < (0.30*(tw_d+bw_d))), 1, 0);
 cwr_d = (bw_d-tw_d)/(tw_d+bw_d+0.001)*100; 
 top_type_candle_d = IIf ((cb_ratio_range < 15) AND (cwr_d > 70), True, False);
-zigc_d = Zig(C, 5);
-troughs_d=Trough(zigc_d,1,1);
-C_near_troughs_d = (abs(C-troughs_d)/C*100) < 2;
+zigc_d = Zig(C, 0.25);
+troughs_d=Trough(zigc_d,0.1,1);
+C_near_troughs_d = (abs(C-troughs_d)/C*100) < 0.1;
 LLV_d = Ref(LLV(L,6),-1);
-L_near_llvd = (abs(L-LLV_d)/L*100) < 10;
+L_near_llvd = (abs(L-LLV_d)/L*100) < 0.25;
 bbb_d = BBandBot( C, 15, 2 );
 L_dist_bbb_d = abs (L - Ref(bbb_d,-1))/L * 100;
-L_near_bbb_d = L_dist_bbb_d < 3;
+L_near_bbb_d = L_dist_bbb_d < 0.25;
 pinbar_near_low_d = (L_near_bbb_d) AND (L_near_llvd) AND
 					((C_near_troughs_d) OR Ref (C_near_troughs_d, -1)) AND 
 					(pinbar_d);
@@ -73,9 +85,20 @@ Buy_strength =  IIf(pinbar_near_low_m, 15, 0) +
 				IIf(pinbar_near_low_w, 10, 0) +
 				IIf(pinbar_near_low_d, 5, 0);
 				
-Buy = ((pinbar_near_low_d) OR (pinbar_near_low_w) OR (pinbar_near_low_m)) 
-	  AND (C>50)
-	  AND (MA(Volume,32) > 20000);
+C_near_pDayH = abs (C-pDayH)/C*100 < 0.2;
+C_near_pDayL = abs (C-pDayL)/C*100 < 0.2;
+C_near_pDayC = abs (C-pDayC)/C*100 < 0.2;
+/*
+C_near_pDayH = abs (C-pDayH)/C*100 < 0.2;
+C_near_pDayL = abs (C-pDayL)/C*100 < 0.2;
+C_near_pDayC = abs (C-pDayC)/C*100 < 0.2;
+*/
+
+C_near_DP = (C_near_pDayH) OR (C_near_pDayL) OR (C_near_pDayC);
+
+Buy = 	(pinbar_near_low_d AND C_near_DP) OR 
+		 pinbar_near_low_w OR 
+		(pinbar_near_low_m);
 Filter = Buy;
 
 SetOption("NoDefaultColumns", True );
