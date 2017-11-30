@@ -1,0 +1,27 @@
+_SECTION_BEGIN("HA");
+
+//Session= TimeNum() >= 091500 AND TimeNum() <= 092500;
+
+ticker = Name ();
+curint = Interval(2);
+
+PDH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
+PDL = TimeFrameGetPrice("L", inDaily, -1);	//	low
+PDC = TimeFrameGetPrice("C", inDaily, -1);	//	Close
+
+C_cross_pdc = Cross (C, PDC);
+C_cross_pdl = Cross (C, PDL);
+
+Buy = Buy_strength  = (C>O) AND (Cross (C, PDH)+(Cross (C, PDC) AND Cross (C, PDL)));
+Sell = Sell_strength = (C<O) AND (Cross (PDL, C)+(Cross (PDC, C) AND Cross (PDH, C)));
+
+Filter = Buy OR Sell;
+
+SetOption("NoDefaultColumns", True );
+AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );
+//AddColumn( IIf( Buy, 66 , 83 ), "Signal", formatChar, colorDefault, IIf( Buy , colorGreen, colorRed ) ); 
+AddColumn(C, "CMP", 1.2);
+
+_SECTION_END();
+
