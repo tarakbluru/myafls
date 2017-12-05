@@ -9,18 +9,43 @@ PDH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
 PDL = TimeFrameGetPrice("L", inDaily, -1);	//	low
 PDC = TimeFrameGetPrice("C", inDaily, -1);	//	Close
 
-C_cross_pdc = Cross (C, PDC);
-C_cross_pdl = Cross (C, PDL);
 
-Buy = Buy_strength  = (C>O) AND (Cross (C, PDH)+(Cross (C, PDC) AND Cross (C, PDL)));
-Sell = Sell_strength = (C<O) AND (Cross (PDL, C)+(Cross (PDC, C) AND Cross (PDH, C)));
+C_1 = Ref(C,-1);
+C_2 = Ref(C,-2);
+C_3 = Ref(C,-3);
+C_4 = Ref(C,-4);
+
+C_cross_pdc = Cross (C_1, PDC);
+C_cross_pdl = Cross (C_1, PDL);
+pdl_cross_C = Cross (PDL, C_4);
+
+//hourly bo
+
+Buy_hourly =  (C > HHV(Ref(C,-1),12)) AND (C > Ref(HHV (H,12),-1)) AND (ATR(1) > EMA(ATR(1),8));
+Sell_hourly = (C < LLV(Ref(C,-1),12)) AND (C < Ref(LLV (H,12),-1)) AND (ATR(1) > EMA(ATR(1),8));
+
+
+Buy = Buy_strength  =  (C>O)  AND 
+					   ( Cross (C, PDH)  OR 
+					     (Cross (C, PDC) AND Cross (C, PDL)) OR 
+					     (Cross (C_1, PDL) AND Cross (C, PDC)) OR 
+					     (Cross (C, PDL) AND (Cross (PDL, C_1) OR Cross (PDL, C_2) OR Cross (PDL, C_3)))  OR //BOF of PDL
+					     ( Buy_hourly AND (Cross (C, PDC) OR Cross (C, PDL)))
+					   );
+Sell = Sell_strength =  (C<O)  AND 
+						( Cross (PDL, C)  OR 
+						  (Cross (PDC, C) AND   Cross (PDH, C)) OR 
+						  (Cross (PDH, C_1) AND Cross (PDC, C)) OR 
+						  (Cross (PDH, C) AND (Cross (C_1,PDH) OR Cross (C_2, PDH) OR Cross (C_3, PDH))) OR //BOF of PDH
+						  (Sell_hourly AND (Cross (PDC,C) OR Cross (PDH, C)))
+						);
 
 Filter = Buy OR Sell;
 
 SetOption("NoDefaultColumns", True );
 AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
 AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );
-//AddColumn( IIf( Buy, 66 , 83 ), "Signal", formatChar, colorDefault, IIf( Buy , colorGreen, colorRed ) ); 
+AddColumn( IIf( Buy, 66 , 83 ), "Signal", formatChar, colorDefault, IIf( Buy , colorGreen, colorRed ) ); 
 AddColumn(C, "CMP", 1.2);
 
 _SECTION_END();
