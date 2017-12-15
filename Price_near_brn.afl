@@ -132,8 +132,8 @@ sell_weakness1 = IIf(C<O, bw/(H-L+0.001)*weakness_sell_multiplier, 0);
 Buy_strength_tmp = round(f1_buy_strength + Buy_strength4 - Buy_weakness1);
 Sell_strength_tmp = round(f1_sell_strength + Sell_strength4 - sell_weakness1);
 
-Buy_strength = IIF(Buy_strength_tmp > Sell_strength_tmp, Buy_strength_tmp-Sell_strength_tmp, 0);
-Sell_strength = IIF(Buy_strength_tmp < Sell_strength_tmp, Sell_strength_tmp-Buy_strength_tmp, 0);
+Buy_strength = IIF  (C>pDayC, IIF(Buy_strength_tmp > Sell_strength_tmp, Buy_strength_tmp-Sell_strength_tmp, 0), 0);
+Sell_strength = IIf (C<pDayC, IIF(Buy_strength_tmp < Sell_strength_tmp, Sell_strength_tmp-Buy_strength_tmp, 0), 0);
 
 Filter = (timeOK) AND ((Buy_strength >3) OR  (Sell_strength >3));
 
