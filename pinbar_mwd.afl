@@ -15,13 +15,16 @@ top_type_candle_m = IIf ((cb_ratio_range < 15) AND (cwr_m > 70), True, False);
 zigc_m = Zig(C, 5);
 troughs_m=Trough(zigc_m,1,1);
 C_near_troughs_m = (abs(C-troughs_m)/C*100) < 2;
+peak_m=Peak(zigc_m,1,2);
+C_near_peak_m = (abs(C-peak_m)/C*100) < 2;
+
 LLV_m = Ref(LLV(L,6),-1);
 L_near_llvm = (abs(L-LLV_m)/L*100) < 20;
 bbb_m_comp = BBandBot( C, 15, 2 );
 L_dist_bbb_m = abs (L - Ref(bbb_m_comp,-1))/L * 100;
 L_near_bbb_m_comp = L_dist_bbb_m < 25;
 pinbar_m_1 = Ref(pinbar_m, 0);
-pinbar_near_low_m_comp = (L_near_bbb_m_comp)AND(L_near_llvm) AND (Ref(pinbar_m, -1) OR (C_near_troughs_m) OR Ref (C_near_troughs_m, -1)) AND (pinbar_m_1);
+pinbar_near_low_m_comp = (L_near_bbb_m_comp)AND(L_near_llvm) AND (Ref(pinbar_m, -1) OR (C_near_peak_m) OR (C_near_troughs_m) OR Ref (C_near_troughs_m, -1)) AND (pinbar_m_1);
 TimeFrameRestore(); // restore time frame to original
 
 pinbar_near_low_m = TimeFrameExpand(pinbar_near_low_m_comp,inMonthly);
@@ -37,6 +40,10 @@ top_type_candle_w = IIf ((cb_ratio_range < 15) AND (cwr_w > 70), True, False);
 zigc_w = Zig(C, 5);
 troughs_w=Trough(zigc_w,1,1);
 C_near_troughs_w = (abs(C-troughs_w)/C*100) < 2;
+
+peak_w=Peak(zigc_w,1,2);
+C_near_peak_w= (abs(C-peak_w)/C*100) < 2;
+
 LLV_w = Ref(LLV(L,6),-1);
 L_near_llvw = (abs(L-LLV_w)/L*100) < 10;
 bbb_w_comp = BBandBot( C, 15, 2 );
@@ -59,13 +66,16 @@ top_type_candle_d = IIf ((cb_ratio_range < 15) AND (cwr_d > 70), True, False);
 zigc_d = Zig(C, 5);
 troughs_d=Trough(zigc_d,1,1);
 C_near_troughs_d = (abs(C-troughs_d)/C*100) < 2;
+peak_d=Peak(zigc_d,1,2);
+C_near_peak_d= (abs(C-peak_d)/C*100) < 2;
+
 LLV_d = Ref(LLV(L,6),-1);
 L_near_llvd = (abs(L-LLV_d)/L*100) < 10;
 bbb_d = BBandBot( C, 15, 2 );
 L_dist_bbb_d = abs (L - Ref(bbb_d,-1))/L * 100;
 L_near_bbb_d = L_dist_bbb_d < 3;
 pinbar_near_low_d = (L_near_bbb_d) AND (L_near_llvd) AND
-					((C_near_troughs_d) OR Ref (C_near_troughs_d, -1)) AND 
+					((C_near_peak_d) OR (C_near_troughs_d) OR Ref (C_near_troughs_d, -1)) AND 
 					(pinbar_d);
 TimeFrameRestore(); // restore time frame to original
 
