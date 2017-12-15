@@ -1,7 +1,5 @@
 _SECTION_BEGIN("HA");
 
-//Session= TimeNum() >= 091500 AND TimeNum() <= 092500;
-
 ticker = Name ();
 curint = Interval(2);
 
@@ -9,36 +7,63 @@ PDH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
 PDL = TimeFrameGetPrice("L", inDaily, -1);	//	low
 PDC = TimeFrameGetPrice("C", inDaily, -1);	//	Close
 
+bbb = BBandBot( C, 15, 2 );
+bbt = BBandTop( C, 15, 2 );
 
 C_1 = Ref(C,-1);
 C_2 = Ref(C,-2);
 C_3 = Ref(C,-3);
 C_4 = Ref(C,-4);
 
-C_cross_pdc = Cross (C_1, PDC);
-C_cross_pdl = Cross (C_1, PDL);
-pdl_cross_C = Cross (PDL, C_4);
-
 //hourly bo
-
 Buy_hourly =  (C > HHV(Ref(C,-1),12)) AND (C > Ref(HHV (H,12),-1)) AND (ATR(1) > EMA(ATR(1),8));
 Sell_hourly = (C < LLV(Ref(C,-1),12)) AND (C < Ref(LLV (H,12),-1)) AND (ATR(1) > EMA(ATR(1),8));
 
+//pin bar
+cb = abs(C-O);
+cb_r = cb/(H-L+0.001)*100;
+pinbar = IIf((cb_r < 30), 1, 0);
 
-Buy = Buy_strength  =  (C>O)  AND 
-					   ( Cross (C, PDH)  OR 
-					     (Cross (C, PDC) AND Cross (C, PDL)) OR 
-					     (Cross (C_1, PDL) AND Cross (C, PDC)) OR 
-					     (Cross (C, PDL) AND (Cross (PDL, C_1) OR Cross (PDL, C_2) OR Cross (PDL, C_3)))  OR //BOF of PDL
-					     ( Buy_hourly AND (Cross (C, PDC) OR Cross (C, PDL)))
-					   );
-Sell = Sell_strength =  (C<O)  AND 
-						( Cross (PDL, C)  OR 
-						  (Cross (PDC, C) AND   Cross (PDH, C)) OR 
-						  (Cross (PDH, C_1) AND Cross (PDC, C)) OR 
-						  (Cross (PDH, C) AND (Cross (C_1,PDH) OR Cross (C_2, PDH) OR Cross (C_3, PDH))) OR //BOF of PDH
-						  (Sell_hourly AND (Cross (PDC,C) OR Cross (PDH, C)))
-						);
+//near pdh
+near_pdh = abs (C-PDH)/C*100 < 0.1;
+pin_bar_near_pdh = pinbar AND near_pdh;
+debug_c_crs_pdh = Cross (C, PDH);
+C_crss_bbb_0 = Cross (C,bbb);
+C_crss_bbb_1 = Ref(C_crss_bbb_0, -1);
+C_crss_bbb_2 = Ref(C_crss_bbb_0, -2);
+C_crss_bbb_3 = Ref(C_crss_bbb_0, -3);
+C_crss_bbb_4 = Ref(C_crss_bbb_0, -4);
+C_crss_bbb = C_crss_bbb_0 OR C_crss_bbb_1 OR C_crss_bbb_2 OR C_crss_bbb_3 OR C_crss_bbb_4;
+
+bbt_crss_c_0 = Cross (bbt,C);
+bbt_crss_c_1 = Ref(bbt_crss_c_0, -1);
+bbt_crss_c_2 = Ref(bbt_crss_c_0, -2);
+bbt_crss_c_3 = Ref(bbt_crss_c_0, -3);
+bbt_crss_c_4 = Ref(bbt_crss_c_0, -4);
+bbt_crss_c = bbt_crss_c_0 OR bbt_crss_c_1 OR bbt_crss_c_2 OR bbt_crss_c_3 OR bbt_crss_c_4;
+
+
+Buy =   (	(C>O)  AND 
+			( Cross (H,bbt) OR C_crss_bbb ) AND 
+			( 	( Cross (C, PDH) ) OR 
+				( Cross (C, PDC) AND Cross (C, PDL)) OR 
+				( Cross (C_1, PDL) AND Cross (C, PDC)) OR 
+				( Cross (C, PDL) AND (Cross (PDL, C_1) OR Cross (PDL, C_2) OR Cross (PDL, C_3)))  OR //BOF of PDL
+				( Buy_hourly AND (Cross (C, PDC) OR Cross (C, PDL)))  
+			)
+		) OR 
+		(pinbar AND ( (L<PDL) AND (C>PDL)));
+
+Sell =  ( 	(C < O) AND 
+			( Cross (bbb,L) OR bbt_crss_c) AND 
+			( Cross (PDL, C)  OR 
+				( Cross (PDC, C) AND   Cross (PDH, C)) OR 
+				( Cross (PDH, C_1) AND Cross (PDC, C)) OR 
+				( Cross (PDH, C) AND (Cross (C_1,PDH) OR Cross (C_2, PDH) OR Cross (C_3, PDH))) OR //BOF of PDH
+				( Sell_hourly AND (Cross (PDC,C) OR Cross (PDH, C)))
+			)
+		) OR
+		( pinbar AND (H>PDH) AND ( C < PDH) );
 
 Filter = Buy OR Sell;
 

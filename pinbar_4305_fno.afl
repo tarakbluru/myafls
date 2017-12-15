@@ -1,6 +1,5 @@
 _SECTION_BEGIN("search_Pin_bars");
 
-
 ticker = Name ();
 curint = Interval(2);
 
