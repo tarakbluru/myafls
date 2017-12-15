@@ -57,7 +57,7 @@ C_rn =  abs  (lastC - rn)/(lastC)*100;
 C_nrn = abs  (lastC - nrn)/(lastC)*100;
 C_n1rn = abs (lastC - n1rn)/(lastC)*100;
 
-C_near_rn   = IIf (C_rn < 1, 1, 0);  //if less than 2% then near rn = true
+C_near_rn   = IIf (C_rn < 1, 1, 0);  //if less than 1% then near rn = true
 C_near_nrn  = IIf (C_nrn < 1, 1, 0);
 C_near_n1rn = IIf (C_n1rn < 1, 1, 0);
 
@@ -135,7 +135,10 @@ Sell_strength_tmp = round(f1_sell_strength + Sell_strength4 - sell_weakness1);
 Buy_strength = IIF(Buy_strength_tmp > Sell_strength_tmp, Buy_strength_tmp-Sell_strength_tmp, 0);
 Sell_strength = IIF(Buy_strength_tmp < Sell_strength_tmp, Sell_strength_tmp-Buy_strength_tmp, 0);
 
-Filter = (timeOK) AND ((Buy_strength >3) OR  (Sell_strength >3));
+Buy = (timeOK) AND (Buy_strength >3);
+Sell = (timeOK) AND (Sell_strength >3);
+
+Filter = (Buy  OR  Sell);
 
 SetOption("NoDefaultColumns", True );
 AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
