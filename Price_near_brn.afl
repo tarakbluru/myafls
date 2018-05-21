@@ -13,10 +13,10 @@ fc_endTime = 92000;  // end in HHMMSS format
 sc_startTime = 92000; // start in HHMMSS format
 sc_endTime = 92500;  // end in HHMMSS format
 
-timeOK = tn > startTime AND tn <= endTime;
+timeOK = tn >= startTime AND tn <= endTime;
 
-fc_timeOK = tn > fc_startTime AND tn <= fc_endTime;
-sc_timeOK = tn > sc_startTime AND tn <= sc_endTime;
+fc_timeOK = tn >= fc_startTime AND tn <= fc_endTime;
+sc_timeOK = tn >= sc_startTime AND tn <= sc_endTime;
 
 
 //Get Previous Day data
@@ -29,7 +29,8 @@ pDayC = TimeFrameGetPrice("C", inDaily, -1);	// yesterdays close
 DayO = TimeFrameGetPrice("O", inDaily, 0);	//	day open
 
 //Calculation of BRN and RN
-lastC = round (Ref(C, 0));
+//lastC = round (Ref(C, 0));
+lastC = DayO;
 brn = int ((lastC+51)/100)*100;
 rn = IIf(brn - 50 > 0, brn-50, 0);
  
@@ -92,8 +93,8 @@ Sell_strength0 =  IIf(pday_top_type_candle == False, IIf (pDayC < pDayO AND pDay
 weakness_buy_multiplier = IIf(Buy_strength0 > Sell_strength0, 2/(Buy_strength0+0.01),  0);
 weakness_sell_multiplier = IIf(Sell_strength0 > Buy_strength0, 2/(Sell_strength0+0.01),  0);
 
-Buy_strength1  =  IIf ((C>=O) AND (DayO > pDayH) AND (C > pDayH), 5, 0);
-Sell_strength1 =  IIf ((C<=O) AND (DayO < pDayL) AND (C < pDayL), 5, 0);
+Buy_strength1  =  IIf ((C>=O) AND (DayO > pDayH) AND (C > pDayH), 5, 0) + IIf ((C>=O) AND Cross(C, pDayH), 5, 0);
+Sell_strength1 =  IIf ((C<=O) AND (DayO < pDayL) AND (C < pDayL), 5, 0) + IIf ((C<=O) AND Cross(pDayL, C), 5, 0);
 
 DayO_near_pDayH = abs(DayO - pDayH)/pDayH*100;
 DayO_near_pDayL = abs(DayO - pDayL)/pDayL*100;
@@ -135,8 +136,8 @@ Sell_strength_tmp = round(f1_sell_strength + Sell_strength4 - sell_weakness1);
 Buy_strength = IIF  (C>pDayC, IIF(Buy_strength_tmp > Sell_strength_tmp, Buy_strength_tmp-Sell_strength_tmp, 0), 0);
 Sell_strength = IIf (C<pDayC, IIF(Buy_strength_tmp < Sell_strength_tmp, Sell_strength_tmp-Buy_strength_tmp, 0), 0);
 
-Buy = (timeOK) AND (Buy_strength >3);
-Sell = (timeOK) AND (Sell_strength >3);
+Buy = (timeOK) AND (Buy_strength >5) AND (C>EMA(C,58));
+Sell = (timeOK) AND (Sell_strength >5) AND (C<EMA(C,58));
 
 Filter = (Buy  OR  Sell);
 
@@ -152,6 +153,6 @@ AddColumn(C, "CMP", 1.2);
 AddColumn((C-pDayC)/pDayC*100, "%change", 1.2);
 AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
 
-AlertIf(Filter, "","nbrn "+NumToStr(C,8.2,True,True)+" "+NumToStr(buy_strength,8.0,True,True)+" "+NumToStr(sell_strength,8.0,True,True));
+//AlertIf(Filter, "","nbrn "+NumToStr(C,8.2,True,True)+" "+NumToStr(buy_strength,8.0,True,True)+" "+NumToStr(sell_strength,8.0,True,True));
 
 _SECTION_END();
