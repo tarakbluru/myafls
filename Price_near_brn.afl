@@ -45,9 +45,15 @@ C_brn =  abs  (lastC - brn)/(lastC)*100;
 C_nbrn = abs  (lastC - nbrn)/(lastC)*100;
 C_n1brn = abs (lastC - n1brn)/(lastC)*100;
 
-C_near_brn = IIf (C_brn < 1, 2, 0);   //if less than 2% then near brn = true
-C_near_nbrn = IIf (C_nbrn < 1, 2, 0);
-C_near_n1brn = IIf (C_n1brn < 1, 2, 0);
+TimeFrameSet(inDaily);
+Avg_h_l_comp = median(H-L,3);
+TimeFrameRestore();
+
+Avg_h_l = TimeFrameExpand(Avg_h_l_comp,inDaily)*2;
+
+C_near_brn = IIf (C_brn < Avg_h_l, 2, 0);   //if less than 2% then near brn = true
+C_near_nbrn = IIf (C_nbrn < Avg_h_l, 2, 0);
+C_near_n1brn = IIf (C_n1brn < Avg_h_l, 2, 0);
 
 C_near_brn_score = round(2/(C_brn+0.1));   
 C_near_nbrn_score = round(2/(C_nbrn+0.1));
@@ -58,9 +64,9 @@ C_rn =  abs  (lastC - rn)/(lastC)*100;
 C_nrn = abs  (lastC - nrn)/(lastC)*100;
 C_n1rn = abs (lastC - n1rn)/(lastC)*100;
 
-C_near_rn   = IIf (C_rn < 1, 1, 0);  //if less than 1% then near rn = true
-C_near_nrn  = IIf (C_nrn < 1, 1, 0);
-C_near_n1rn = IIf (C_n1rn < 1, 1, 0);
+C_near_rn   = IIf (C_rn < Avg_h_l, 1, 0);  //if less than 2% then near rn = true
+C_near_nrn  = IIf (C_nrn < Avg_h_l, 1, 0);
+C_near_n1rn = IIf (C_n1rn < Avg_h_l, 1, 0);
 
 C_near_rn_score = round(1/(C_rn+0.1));   
 C_near_nrn_score = round(1/(C_nrn+0.1));
@@ -93,8 +99,8 @@ Sell_strength0 =  IIf(pday_top_type_candle == False, IIf (pDayC < pDayO AND pDay
 weakness_buy_multiplier = IIf(Buy_strength0 > Sell_strength0, 2/(Buy_strength0+0.01),  0);
 weakness_sell_multiplier = IIf(Sell_strength0 > Buy_strength0, 2/(Sell_strength0+0.01),  0);
 
-Buy_strength1  =  IIf ((C>=O) AND (DayO > pDayH) AND (C > pDayH), 5, 0) + IIf ((C>=O) AND Cross(C, pDayH), 5, 0);
-Sell_strength1 =  IIf ((C<=O) AND (DayO < pDayL) AND (C < pDayL), 5, 0) + IIf ((C<=O) AND Cross(pDayL, C), 5, 0);
+Buy_strength1  =  IIf ((C>=O) AND (DayO > pDayH) AND (C > pDayH), 5, 0) + IIf ((C>=O) AND Cross(C, pDayH), 10, 0);
+Sell_strength1 =  IIf ((C<=O) AND (DayO < pDayL) AND (C < pDayL), 5, 0) + IIf ((C<=O) AND Cross(pDayL, C), 10, 0);
 
 DayO_near_pDayH = abs(DayO - pDayH)/pDayH*100;
 DayO_near_pDayL = abs(DayO - pDayL)/pDayL*100;
@@ -136,8 +142,15 @@ Sell_strength_tmp = round(f1_sell_strength + Sell_strength4 - sell_weakness1);
 Buy_strength = IIF  (C>pDayC, IIF(Buy_strength_tmp > Sell_strength_tmp, Buy_strength_tmp-Sell_strength_tmp, 0), 0);
 Sell_strength = IIf (C<pDayC, IIF(Buy_strength_tmp < Sell_strength_tmp, Sell_strength_tmp-Buy_strength_tmp, 0), 0);
 
-Buy = (timeOK) AND (Buy_strength >5) AND (C>EMA(C,58));
-Sell = (timeOK) AND (Sell_strength >5) AND (C<EMA(C,58));
+
+Buy1 = (timeOK) AND (Buy_strength >10) AND (C>EMA(C,58));
+Sell1 = (timeOK) AND (Sell_strength >10) AND (C<EMA(C,58));
+
+prev_buy1= Sum(Ref(Buy1,-1), 3);
+prev_sell1 = Sum (Ref(Sell1, -1), 3);
+
+Buy = Buy1 AND   (prev_buy1 == 0)  AND (C>EMA(C,60));
+Sell = Sell1 AND (prev_sell1 == 0) AND (C<EMA(C,60));
 
 Filter = (Buy  OR  Sell);
 
@@ -152,6 +165,12 @@ AddColumn(Sell_strength, "s", 1.0);
 AddColumn(C, "CMP", 1.2);
 AddColumn((C-pDayC)/pDayC*100, "%change", 1.2);
 AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
+
+SendAlert = 0;
+if (SendAlert) {
+	AlertIf( Ref(Buy,-1),  "EMAIL", "Amibroker Near BRN: Buy Alert in "+FullName()+ " @"+BuyPrice,1 );
+	AlertIf( Ref(Sell,-1), "EMAIL", "Amibroker Near BRN: Short Alert in "+FullName()+ " @"+ShortPrice,3 );
+}
 
 //AlertIf(Filter, "","nbrn "+NumToStr(C,8.2,True,True)+" "+NumToStr(buy_strength,8.0,True,True)+" "+NumToStr(sell_strength,8.0,True,True));
 
