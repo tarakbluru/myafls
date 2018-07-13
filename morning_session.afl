@@ -1,0 +1,255 @@
+_SECTION_BEGIN("price_action_nearbrn");
+
+ticker = Name ();
+curint = Interval(2);
+
+function CDL( array )
+{
+    doy = DayOfYear();
+    Lastdoy = doy == LastValue( doy );
+    Dayline = array * Lastdoy;
+
+    return IIf( Dayline, Dayline, Null );
+}
+
+tn = TimeNum();
+startTime = 91500; // start in HHMMSS format
+endTime = 92500;  // end in HHMMSS format
+
+fc_startTime = 91500; // start in HHMMSS format
+fc_endTime = 92000;  // end in HHMMSS format
+
+sc_startTime = 92000; // start in HHMMSS format
+sc_endTime = 92500;  // end in HHMMSS format
+
+timeOK = tn >= startTime AND tn <= endTime;
+
+fc_timeOK = tn >= fc_startTime AND tn <= fc_endTime;
+sc_timeOK = tn >= sc_startTime AND tn <= sc_endTime;
+
+
+//Get Previous Day data
+pDayO = TimeFrameGetPrice("O", inDaily, -1);	// yesterdays open
+pDayH = TimeFrameGetPrice("H", inDaily, -1);	// yesterdays high
+pDayL = TimeFrameGetPrice("L", inDaily, -1);	// yesterdays low
+pDayC = TimeFrameGetPrice("C", inDaily, -1);	// yesterdays close
+
+//Get Today's Data
+DayO = TimeFrameGetPrice("O", inDaily, 0);	//	day open
+
+//Calculation of BRN and RN
+TimeFrameSet(inDaily);
+Avg_h_l_comp = 0.5*HHV(H-L,5);
+TimeFrameRestore();
+
+Avg_h_l = TimeFrameExpand(Avg_h_l_comp,inDaily);
+
+lastC = DayO;
+brn = int ((lastC+51)/100)*100;
+rn = IIf(brn - 50 > 0, brn-50, 0);
+ 
+nbrn = brn+100;
+nrn = nbrn - 50;
+
+n1brn = IIf(brn-100 > 0, brn-100, 0);
+n1rn = IIf(n1brn-50 > 0, n1brn-50, 0);
+
+bl_brn   = (brn - Avg_h_l);
+bl_nbrn  = (nbrn - Avg_h_l); 
+bl_n1brn = (n1brn - Avg_h_l);
+
+bh_brn   = (brn + Avg_h_l);
+bh_nbrn  = (nbrn + Avg_h_l); 
+bh_n1brn = (n1brn + Avg_h_l);
+
+//Near BRN findings
+C_near_brn =  (C >= bl_brn) AND ( C<= bh_brn);
+C_near_nbrn = (C >= bl_nbrn) AND ( C<= bh_nbrn);
+C_near_n1brn = (C >= bl_n1brn) AND ( C<= bh_n1brn);
+
+//Near RN findings
+bl_rn   = (rn - Avg_h_l);
+bl_nrn  = (nrn - Avg_h_l); 
+bl_n1rn = (n1rn - Avg_h_l);
+
+bh_rn   = (rn + Avg_h_l);
+bh_nrn  = (nrn + Avg_h_l); 
+bh_n1rn = (n1rn + Avg_h_l);
+
+C_near_rn =  (C >= bl_rn) AND ( C<= bh_rn);
+C_near_nrn = (C >= bl_nrn) AND ( C<= bh_nrn);
+C_near_n1rn = (C >= bl_n1rn) AND ( C<= bh_n1rn);
+
+near_brn_rn_strength = C_near_brn OR C_near_nbrn OR C_near_n1brn OR C_near_rn OR C_near_nrn OR C_near_n1rn;
+Sum_near_brn_rn_strength = Sum(near_brn_rn_strength, 1);
+
+EMA_buy_strength = (C>EMA(C,60));
+Sum_EMA_buy_strength = Sum(EMA_buy_strength, 3) >=2;
+
+EMA_sell_strength = (C<EMA(C,60));
+Sum_EMA_sell_strength = Sum(EMA_sell_strength, 3) >=2;
+
+dayO_buy_strength = (DayO >= pDayH)*2+(DayO >= pDayC);
+dayO_Sell_strength = (DayO <= pDayL)*2+(DayO <= pDayC);
+
+time_spent_over_PDH = Sum ((timeOk)AND (C >= pDayH), 3);
+time_spent_below_PDL = Sum((timeOk)AND (C <= pDayL), 3);
+
+Stoc=StochD();
+stoc_increasing = stoc > Ref(stoc, -1);
+stoc_inc_sum = Sum (stoc_increasing, 3) >= 2;
+
+stoc_decreasing = stoc < Ref(stoc, -1);
+stoc_dec_sum = Sum (stoc_decreasing, 3 ) >= 2;
+
+stoc_buy_strength = IIf ((stoc < 50) AND stoc_inc_sum, 1, 0);
+stoc_sell_strength = IIf ((stoc > 50) AND stoc_dec_sum, 1, 0);
+
+stoc_buy_weakness = IIf((DayO < pDayH) AND (DayO > pDayL) AND (Stoc >=75), 1, 0);
+stoc_sell_weakness = IIf((DayO < pDayH) AND (DayO > pDayL) AND (Stoc <=25), 1, 0);
+
+Sum_stoc_buy_strength = IIf(DayO > pDayH, Sum(stoc_buy_strength, 3)>1, 0);
+Sum_stoc_sell_strength = IIf(DayO < pDayL, Sum(stoc_sell_strength, 3)>1, 0);
+
+tw = IIf ((C>O), H-C, H-O);
+bw = IIf (C<O, C-L, O-L);
+
+Wick_Buy_strength = IIf((C>O) AND (tw/(H-L+0.001)*100 < 5) OR (C<O AND (bw/(H-L+0.001)*100 >50)) , 1, 0);
+Wick_sell_strength = IIf((C<O) AND (bw/(H-L+0.001)*100 < 5) OR (C>O AND (tw/(H-L+0.001)*100 >50)), 1, 0);
+
+Wick_Buy_weakness = IIf((timeOk) AND (C>O) AND (tw/(H-L+0.001)*100 >50), 1, 0);
+Wick_sell_weakness =IIf((timeOk) AND (C<O) AND (bw/(H-L+0.001)*100 >50), 1, 0);
+
+Cum_Wick_Buy_weakness = IIf((timeOk), Sum (Wick_Buy_weakness, 3),0);
+Cum_Wick_sell_weakness = IIf((timeOk),Sum (Wick_sell_weakness, 3),0);
+
+Cum_Wick_Buy_strength = Sum (Wick_Buy_strength, 3) - Cum_Wick_Buy_weakness;
+Cum_Wick_sell_strength = Sum (Wick_sell_strength, 3) - Cum_Wick_sell_weakness;
+
+DP_crossover_Buy_strength  =  timeOk * IIf ((C>=O) AND Cross(C, pDayL) AND Cross (C, pDayC), 1, 0);
+DP_crossover_Sell_strength =  timeOk * IIf ((C<=O) AND Cross(pDayH, C) AND Cross (pDayC, C), 1, 0);
+
+DP_crossover_Buy_strength2  =  timeOk * IIf ((C>=O) AND Cross(C, pDayH), 1, 0);
+DP_crossover_Sell_strength2 =  timeok * IIf ((C<=O) AND Cross(pDayL, C), 1, 0);
+
+Cum_DP_crossover_Buy_strength = Sum (DP_crossover_Buy_strength+DP_crossover_Buy_strength2, 3);
+Cum_DP_crossover_Sell_strength = Sum (DP_crossover_Sell_strength+DP_crossover_Sell_strength2, 3);
+
+candle_buy_strength = timeOk * ((C>O)+(C>pDayH)+(O>PDayH)+(C==H));
+Sum_candle_buy_strength = (Sum (candle_buy_strength, 3));
+
+candle_buy_weakness = timeOk * ((C<O));
+Sum_candle_buy_weakness = (Sum (candle_buy_weakness, 3));
+
+candle_sell_strength = (timeOk) * ((C<O) + (C<pDayL)+(O<PDayL)+(C==L));
+Sum_candle_sell_strength = (Sum(candle_sell_strength,3));
+
+candle_sell_weakness = timeOk * ((C>O));
+Sum_candle_sell_weakness = (Sum (candle_sell_weakness, 3));
+
+C_1 = Ref(C,-1);
+O_1 = Ref(O,-1);
+L_1 = Ref(L,-1);
+H_1 = Ref(H,-1);
+
+candle_cover_buy_strength  = IIf  ((fc_timeOK OR sc_timeOk), IIf ((C_1 > O_1 ) AND (C<O) AND (L > L_1), 1, 0),0);
+candle_cover_sell_strength = IIf  ((fc_timeOK OR sc_timeOk), IIf ((C_1 < O_1 ) AND (C>O) AND (H < H_1), 1, 0),0);
+
+Index = Foreign("NIFTY 50.NSE_IDX", "C", True);
+IndexMA = MA(Index, 60);
+index_buy_strength = IIf(Index > IndexMA, 1, 0);
+index_sell_strength = IIf(Index < IndexMA, 1, 0);
+
+SetForeign("NIFTY 50.NSE_IDX");
+idxDayO = TimeFrameGetPrice("O", inDaily, 0);	//	day open
+idxDayH = TimeFrameGetPrice("H", inDaily, -1);	//	day high
+idxDayL = TimeFrameGetPrice("L", inDaily, -1);	//	day low
+threshold = IIf((idxDayO > idxDayH) OR (idxDayO < idxDayL), 14, 10);
+RestorePriceArrays();
+
+//if trading more than 3%, should get lesser priority
+change_buy_weakness0  = IIf ((C>pDayC) AND ((C-pDayC)/pDayC*100 > 2.5), 1, 0);
+change_sell_weakness0 = IIf ((C<pDayC) AND ((pDayC-C)/pDayC*100 <(-2.5)), 1, 0);
+
+//if trading less than 1%, should get lesser priority
+change_buy_weakness1  = IIf ((C>pDayC) AND ((C-pDayC)/pDayC*100 < 1.0), 1, 0);
+change_sell_weakness1 = IIf ((C<pDayC) AND ((pDayC-C)/pDayC*100 <(-1.0)), 1, 0);
+
+change_buy_weakness = change_buy_weakness0 + change_buy_weakness1;
+change_sell_weakness = change_sell_weakness0 + change_sell_weakness1;
+
+/*
+				Sum_EMA_buy_strength = 0;
+				dayO_buy_strength = 0;
+				time_spent_over_PDH = 0;
+				Sum_stoc_buy_strength = 0;
+				Cum_DP_crossover_Buy_strength = 0;
+				Cum_Wick_Buy_strength = 0;
+				Sum_candle_buy_strength = 0;
+				candle_cover_buy_strength = 0;
+				Cum_Wick_sell_strength = 0;
+*/
+
+Buy_strength =  index_buy_strength +
+				Sum_EMA_buy_strength +
+				dayO_buy_strength + 
+				time_spent_over_PDH +
+				Sum_stoc_buy_strength +
+				Cum_DP_crossover_Buy_strength + 
+				Cum_Wick_Buy_strength +
+				Sum_candle_buy_strength +
+				candle_cover_buy_strength -
+				Cum_Wick_sell_strength -
+				stoc_buy_weakness -
+				change_buy_weakness -
+				Sum_candle_buy_weakness;
+
+Sell_strength = index_sell_strength +
+				Sum_EMA_sell_strength +
+				dayO_sell_strength + 
+				time_spent_below_PDL +
+				Sum_stoc_sell_strength +
+				Cum_DP_crossover_Sell_strength + 
+				Cum_Wick_Sell_strength +
+				Sum_candle_sell_strength +
+				candle_cover_sell_strength -
+				Cum_Wick_buy_strength - 
+				stoc_sell_weakness -
+				change_sell_weakness -
+				Sum_candle_sell_weakness;
+
+Buy_strength = IIf (Buy_strength> Sell_strength, Buy_strength+Sum_near_brn_rn_strength, Buy_strength);
+Sell_strength = IIf (Sell_strength> Buy_strength, Sell_strength+Sum_near_brn_rn_strength, Sell_strength);
+
+Buy_strength = IIf (Buy_strength> Sell_strength, Buy_strength, 0);
+Sell_strength = IIf (Sell_strength> Buy_strength, Sell_strength, 0);
+
+Buy = timeOK and ((Buy_strength-(Sell_strength)) > threshold);
+Sell = timeOK and ((Sell_strength-(Buy_strength)) > threshold);
+
+//Buy = timeOK AND  ((Buy_strength) > 12);
+//Sell = timeOK AND ((Sell_strength) > 12);
+
+Filter = Buy OR Sell;
+
+SetOption("NoDefaultColumns", True );
+AddTextColumn( Name(),     "Symbol",1.0, colorDefault,colorDefault, 80);
+//AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
+//AddColumn(C_near_brn, "brn", 1.2);
+//AddColumn(C_near_nbrn, "nbrn", 1.2);
+//AddColumn(C_near_n1brn, "n1brn", 1.2);
+AddColumn(Buy_strength, "b", 1.0);
+AddColumn(Sell_strength, "s", 1.0);
+AddColumn(C, "CMP", 1.2);
+AddColumn((C-pDayC)/pDayC*100, "%change", 1.2);
+AddColumn( DateTime(), "Date / Time", formatDateTime, colorDefault,colorDefault, 70 );//
+
+SendAlert = 0;
+if (SendAlert) {
+	AlertIf( Ref(Buy,-1),  "EMAIL", "Amibroker Near BRN: Buy Alert in "+FullName()+ " @"+Buy_strength,1 );
+	AlertIf( Ref(Sell,-1), "EMAIL", "Amibroker Near BRN: Short Alert in "+FullName()+ " @"+Sell_strength,3 );
+}
+
+//AlertIf(Filter, "","nbrn "+NumToStr(C,8.2,True,True)+" "+NumToStr(buy_strength,8.0,True,True)+" "+NumToStr(sell_strength,8.0,True,True));
+
+_SECTION_END();

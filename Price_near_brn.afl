@@ -96,11 +96,11 @@ Buy_strength0  =  IIf(pday_top_type_candle == False, IIf (pDayC > pDayO AND pDay
 Sell_strength0 =  IIf(pday_top_type_candle == False, IIf (pDayC < pDayO AND pDayC_near_PDayL, 1, 0) + pDayC_near_brn + pDayC_near_PDayL, 0); 
 
 //weaknessmultipler for later use
-weakness_buy_multiplier = IIf(Buy_strength0 > Sell_strength0, 2/(Buy_strength0+0.01),  0);
-weakness_sell_multiplier = IIf(Sell_strength0 > Buy_strength0, 2/(Sell_strength0+0.01),  0);
+weakness_buy_multiplier = IIf(Buy_strength0 > Sell_strength0, 25/(Buy_strength0+0.01),  0);
+weakness_sell_multiplier = IIf(Sell_strength0 > Buy_strength0, 25/(Sell_strength0+0.01),  0);
 
-Buy_strength1  =  IIf ((C>=O) AND (DayO > pDayH) AND (C > pDayH), 5, 0) + IIf ((C>=O) AND Cross(C, pDayH), 10, 0);
-Sell_strength1 =  IIf ((C<=O) AND (DayO < pDayL) AND (C < pDayL), 5, 0) + IIf ((C<=O) AND Cross(pDayL, C), 10, 0);
+Buy_strength1  =  IIf ((C>=O) AND (DayO > pDayH) AND (C > pDayH), 15, 0) + IIf ((C>=O) AND Cross(C, pDayH), 10, 0);
+Sell_strength1 =  IIf ((C<=O) AND (DayO < pDayL) AND (C < pDayL), 15, 0) + IIf ((C<=O) AND Cross(pDayL, C), 10, 0);
 
 DayO_near_pDayH = abs(DayO - pDayH)/pDayH*100;
 DayO_near_pDayL = abs(DayO - pDayL)/pDayL*100;
@@ -133,21 +133,40 @@ Sell_strength4 =  IIf((f1_buy_strength < f1_Sell_strength), C_near_brn_score+C_n
 tw = IIf ((C>O), H-C, H-O);
 bw = IIf (C<O, C-L, O-L);
 
-Buy_weakness1 = IIf(C>O, tw/(H-L+0.001)*weakness_buy_multiplier, 0);
-sell_weakness1 = IIf(C<O, bw/(H-L+0.001)*weakness_sell_multiplier, 0);
+Buy_weakness1 = IIf(C>O, tw/(H-L+0.001)*weakness_buy_multiplier*10, 0);
+sell_weakness1 = IIf(C<O, bw/(H-L+0.001)*weakness_sell_multiplier*10, 0);
 
-Buy_strength_tmp = round(f1_buy_strength + Buy_strength4 - Buy_weakness1);
-Sell_strength_tmp = round(f1_sell_strength + Sell_strength4 - sell_weakness1);
+Stoc=StochD();
+stoc_increasing = stoc > Ref(stoc, -1);
+stoc_inc_sum = Sum (stoc_increasing, 3) >= 2;
+
+stoc_decreasing = stoc < Ref(stoc, -1);
+stoc_dec_sum = Sum (stoc_decreasing, 3 ) >= 2;
+
+stoc_buy_strength = IIf ((stoc < 50) AND stoc_inc_sum, 10, 0);
+stoc_sell_strength = IIf ((stoc > 70) AND stoc_dec_sum, 10, 0);
+
+Buy_weakness2  = IIf ((stoc-50) > 0, stoc/50*10, 0);
+sell_weakness2 = IIf ((Stoc-50) < 0, (100-stoc)/50*10, 0);
+
+Buy_strength_tmp = round(f1_buy_strength + Buy_strength4 + stoc_buy_strength - Buy_weakness1 - Buy_weakness2);
+Sell_strength_tmp = round(f1_sell_strength + Sell_strength4 + stoc_sell_strength - sell_weakness1- sell_weakness2);
 
 Buy_strength = IIF  (C>pDayC, IIF(Buy_strength_tmp > Sell_strength_tmp, Buy_strength_tmp-Sell_strength_tmp, 0), 0);
 Sell_strength = IIf (C<pDayC, IIF(Buy_strength_tmp < Sell_strength_tmp, Sell_strength_tmp-Buy_strength_tmp, 0), 0);
 
 
-Buy1 = (timeOK) AND (Buy_strength >10) AND (C>EMA(C,58));
-Sell1 = (timeOK) AND (Sell_strength >10) AND (C<EMA(C,58));
+Buy1 = (timeOK) AND (Buy_strength >20) AND (C>EMA(C,58));
+Sell1 = (timeOK) AND (Sell_strength >20) AND (C<EMA(C,58));
+
+//Buy1 = (timeOK) AND (Buy_strength >0) AND (C>EMA(C,58));
+//Sell1 = (timeOK) AND (Sell_strength >0) AND (C<EMA(C,58));
 
 prev_buy1= Sum(Ref(Buy1,-1), 3);
 prev_sell1 = Sum (Ref(Sell1, -1), 3);
+
+stocd=StochD();
+stock=StochK();
 
 Buy = Buy1 AND   (prev_buy1 == 0)  AND (C>EMA(C,60));
 Sell = Sell1 AND (prev_sell1 == 0) AND (C<EMA(C,60));
