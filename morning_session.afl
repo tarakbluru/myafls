@@ -114,11 +114,11 @@ Sum_stoc_sell_strength = IIf(DayO < pDayL, Sum(stoc_sell_strength, 3)>1, 0);
 tw = IIf ((C>O), H-C, H-O);
 bw = IIf (C<O, C-L, O-L);
 
-Wick_Buy_strength = IIf((C>O) AND (tw/(H-L+0.001)*100 < 5) OR (C<O AND (bw/(H-L+0.001)*100 >50)) , 1, 0);
-Wick_sell_strength = IIf((C<O) AND (bw/(H-L+0.001)*100 < 5) OR (C>O AND (tw/(H-L+0.001)*100 >50)), 1, 0);
+Wick_Buy_strength = timeOk * IIf((C>O) AND (tw/(H-L+0.001)*100 < 5) OR (C<O AND (bw/(H-L+0.001)*100 >50)) , 1, 0);
+Wick_sell_strength =timeOk *  IIf((C<O) AND (bw/(H-L+0.001)*100 < 5) OR (C>O AND (tw/(H-L+0.001)*100 >50)), 1, 0);
 
-Wick_Buy_weakness = IIf((timeOk) AND (C>O) AND (tw/(H-L+0.001)*100 >50), 1, 0);
-Wick_sell_weakness =IIf((timeOk) AND (C<O) AND (bw/(H-L+0.001)*100 >50), 1, 0);
+Wick_Buy_weakness = timeOk * IIf((timeOk) AND (C>O) AND (tw/(H-L+0.001)*100 >50), 1, 0);
+Wick_sell_weakness =timeOk * IIf((timeOk) AND (C<O) AND (bw/(H-L+0.001)*100 >50), 1, 0);
 
 Cum_Wick_Buy_weakness = IIf((timeOk), Sum (Wick_Buy_weakness, 3),0);
 Cum_Wick_sell_weakness = IIf((timeOk),Sum (Wick_sell_weakness, 3),0);
@@ -190,7 +190,58 @@ change_sell_weakness = change_sell_weakness0 + change_sell_weakness1;
 				Cum_Wick_sell_strength = 0;
 */
 
+TimeFrameSet (in15Minute*5);
+
+//rsiBuy=0;
+//rsiSell=0;
+n=20;
+
+Var = Zig(RSI(), n); 
+t= Trough(RSI(), n, 1); 
+p= Peak(RSI(), n, 1); 
+x[0] =Var[0];
+price[0] = C[0];
+j=0;
+
+// bearish divergence
+for ( i=0; i<BarCount; i++) 
+{
+rsiSell[i] = 0;
+if(Var[i] == p[i])
+{
+
+j++;
+x[j] =Var[i];
+price[j] =C[i];
+if(x[j] <x[j-1] && price[j-1]< price[j]) 
+rsiSell[i] =1;
+}
+}
+
+// bullish divergence
+for ( i=0; i<BarCount; i++) 
+{
+rsiBuy[i] = 0;
+if(Var[i] == t[i])
+{
+j++;
+x[j] =Var[i];
+price[j] =C[i];
+if(x[j] >x[j-1] && price[j]<price[j-1]) 
+rsiBuy[i] =1;
+}
+}
+rsiDiverBuy_Comp = Sum(rsiBuy, 18);
+rsiDiverSell_Comp = Sum(rsiSell, 18);
+
+TimeFrameRestore();
+
+rsiDivBuyStrength = TimeFrameExpand(rsiDiverBuy_Comp, in15Minute*5);
+rsiDivSellStrength = TimeFrameExpand(rsiDiverSell_Comp,in15Minute*5);
+
+
 Buy_strength =  index_buy_strength +
+				(rsiDivBuyStrength * 3) + 
 				Sum_EMA_buy_strength +
 				dayO_buy_strength + 
 				time_spent_over_PDH +
@@ -205,6 +256,7 @@ Buy_strength =  index_buy_strength +
 				Sum_candle_buy_weakness;
 
 Sell_strength = index_sell_strength +
+				(rsiDivSellStrength *3) + 
 				Sum_EMA_sell_strength +
 				dayO_sell_strength + 
 				time_spent_below_PDL +
@@ -224,11 +276,15 @@ Sell_strength = IIf (Sell_strength> Buy_strength, Sell_strength+Sum_near_brn_rn_
 Buy_strength = IIf (Buy_strength> Sell_strength, Buy_strength, 0);
 Sell_strength = IIf (Sell_strength> Buy_strength, Sell_strength, 0);
 
-Buy = timeOK and ((Buy_strength-(Sell_strength)) > threshold);
-Sell = timeOK and ((Sell_strength-(Buy_strength)) > threshold);
+//how far from pdh/pdl
+near_pdh = (abs(C-pDayH)/pDayH*100) < 0.5;
+near_pdl = (abs(C-pDayL)/pDayL*100) < 0.5;
 
-//Buy = timeOK AND  ((Buy_strength) > 12);
-//Sell = timeOK AND ((Sell_strength) > 12);
+Buy_strength = Buy_Strength + IIf((Buy_strength>Sell_strength) AND (near_pdh), 2, 0);
+Sell_strength = Sell_Strength + IIf((Sell_strength>Buy_strength) AND (near_pdl), 2, 0);
+
+Buy = timeOK and  (Buy_strength > threshold);
+Sell = timeOK and (Sell_strength > threshold);
 
 Filter = Buy OR Sell;
 
